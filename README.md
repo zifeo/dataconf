@@ -46,7 +46,6 @@ class Config:
 
 import dataconf
 print(dataconf.load(conf, Config))
-
 # TestConf(test='pc.home', float=2.1, list=['a', 'b'], nested=Nested(a='test'), nestedList=[Nested(a='test1')], duration=datetime.timedelta(seconds=2))
 ```
 
@@ -62,5 +61,5 @@ For full capabilities see [here](https://github.com/chimpler/pyhocon/#example-of
 
 ```shell
 dataconf -c confs/test.hocon -m tests.configs -d TestConf -o hocon
-> dataconf.exceptions.TypeConfigException: expected type <class 'datetime.timedelta'> at .duration, got <class 'int'>
+# dataconf.exceptions.TypeConfigException: expected type <class 'datetime.timedelta'> at .duration, got <class 'int'>
 ```
