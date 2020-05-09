@@ -4,7 +4,6 @@ import sys
 
 from dataconf import dumps
 from dataconf import load
-from dataconf.utils import FileType
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -26,7 +25,7 @@ parser.add_argument(
     "--out",
     dest="out",
     action="store",
-    help=f"out file type: {', '.join(e.value for e in FileType)}",
+    help="out file type: hocon, yaml, json, properties",
     required=False,
 )
 
@@ -37,11 +36,7 @@ def run():
     module = importlib.import_module(args.module)
     clazz = getattr(module, args.dataclass)
 
-    out = None
-    if args.out:
-        out = FileType[args.out.upper()]
-
     res = load(args.conf, clazz)
-    print(dumps(res, out))
+    print(dumps(res, args.out))
 
     sys.exit(0)

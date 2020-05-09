@@ -2,7 +2,6 @@ from dataclasses import asdict
 from dataclasses import fields
 from dataclasses import is_dataclass
 from datetime import timedelta
-import enum
 from typing import get_args
 from typing import get_origin
 from typing import Union
@@ -17,13 +16,6 @@ from pyhocon.exceptions import ConfigMissingException
 import pyparsing
 
 NoneType = type(None)
-
-
-class FileType(enum.Enum):
-    HOCON = "hocon"
-    JSON = "json"
-    YAML = "yaml"
-    PROPERTIES = "properties"
 
 
 def __parse_type(value, clazz, path, check):
@@ -150,21 +142,22 @@ def loads(string: str, clazz):
         )
 
 
-def dump(file: str, instance: object, out: FileType = FileType.HOCON):
+def dump(file: str, instance: object, out: str):
     with open(file, "w") as f:
         f.write(dumps(instance, out=out))
 
 
-def dumps(instance: object, out: FileType = FileType.HOCON):
+def dumps(instance: object, out: str):
     conf = __generate(instance, "")
 
-    if out == FileType.HOCON:
-        return HOCONConverter.to_hocon(conf)
-    if out == FileType.YAML:
-        return HOCONConverter.to_yaml(conf)
-    if out == FileType.JSON:
-        return HOCONConverter.to_json(conf)
-    if out == FileType.PROPERTIES:
-        return HOCONConverter.to_properties(conf)
+    if out:
+        if out.lower() == "hocon":
+            return HOCONConverter.to_hocon(conf)
+        if out.lower() == "yaml":
+            return HOCONConverter.to_yaml(conf)
+        if out.lower() == "json":
+            return HOCONConverter.to_json(conf)
+        if out.lower() == "properties":
+            return HOCONConverter.to_properties(conf)
 
-    raise conf
+    return conf

@@ -52,12 +52,19 @@ print(dataconf.load(conf, Config))
 ```
 
 ```python
-json = dataconf.loads('confs/test.json', Config)
-yaml = dataconf.loads('confs/test.yaml', Config)
-hocon = dataconf.loads('confs/test.hocon', Config)
+conf = dataconf.loads('confs/test.hocon', Config)
+conf = dataconf.loads('confs/test.json', Config)
+conf = dataconf.loads('confs/test.yaml', Config)
+conf = dataconf.loads('confs/test.properties', Config)
+
+dataconf.dumps('confs/test.hocon', out='hocon')
+dataconf.dumps('confs/test.json', out='json')
+dataconf.dumps('confs/test.yaml', out='yaml')
+dataconf.dumps('confs/test.properties', out='properties')
 ```
 
-For full capabilities see [here](https://github.com/chimpler/pyhocon/#example-of-hocon-file).
+Follows same api as python JSON package (e.g. `load`, `loads`, `dump`, `dumps`). 
+For full HOCON capabilities see [here](https://github.com/chimpler/pyhocon/#example-of-hocon-file).
 
 ## CI
 
