@@ -39,7 +39,7 @@ class Nested:
 
 @dataclass
 class Config:
-    test: str
+    str: str
     float: float
     list: List[str]
     nested: Nested
