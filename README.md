@@ -39,8 +39,8 @@ class Conf:
     nestedList: List[Nested]
     duration: timedelta
 
-import dataclass
-print(dataclass.load(conf, Conf))
+import dataconf
+print(dataconf.load(conf, Conf))
 
 # TestConf(str='test', list=['a', 'b'], nested=Nested(a='test'), nestedList=[Nested(a='test1')], duration=datetime.timedelta(seconds=2))
 ```
