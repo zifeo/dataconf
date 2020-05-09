@@ -1,0 +1,21 @@
+int = 2
+float = 2.2
+str = test
+list = [
+    a
+    b
+]
+nested {
+    a = test
+}
+nestedList = [
+    {
+        a = test1
+    }
+    {
+        a = test2
+    }
+]
+# optional
+union = 3
+duration = 2s
