@@ -1,6 +1,11 @@
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
+
 from dataconf import loads
-from dataclasses import dataclass, field
-from typing import List, Dict, Union, Optional
 
 
 class TestParser:

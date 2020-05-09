@@ -1,8 +1,9 @@
 import argparse
-import sys
 import importlib.util
-from dataconf import load, dumps
-from pyhocon import HOCONConverter
+import sys
+
+from dataconf import dumps
+from dataconf import load
 from dataconf.utils import FileType
 
 parser = argparse.ArgumentParser()

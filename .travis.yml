@@ -12,3 +12,4 @@ install:
   
 script:
   - pytest -s tests
+  - pre-commit run --all-files

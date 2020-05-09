@@ -1,21 +1,29 @@
-from pyhocon import ConfigFactory, HOCONConverter
-from pyhocon.config_tree import ConfigTree, ConfigList
-from pyhocon.exceptions import ConfigMissingException
-from dataclasses import is_dataclass, fields, asdict
-from typing import get_origin, get_args, Union
-from dataconf.exceptions import TypeConfigException, MalformedConfigException
-import pyparsing
+from dataclasses import asdict
+from dataclasses import fields
+from dataclasses import is_dataclass
 from datetime import timedelta
 import enum
+from typing import get_args
+from typing import get_origin
+from typing import Union
 
+from dataconf.exceptions import MalformedConfigException
+from dataconf.exceptions import TypeConfigException
+from pyhocon import ConfigFactory
+from pyhocon import HOCONConverter
+from pyhocon.config_tree import ConfigList
+from pyhocon.config_tree import ConfigTree
+from pyhocon.exceptions import ConfigMissingException
+import pyparsing
 
 NoneType = type(None)
 
+
 class FileType(enum.Enum):
-    HOCON = 'hocon'
-    JSON = 'json'
-    YAML = 'yaml'
-    PROPERTIES = 'properties'
+    HOCON = "hocon"
+    JSON = "json"
+    YAML = "yaml"
+    PROPERTIES = "properties"
 
 
 def __parse_type(value, clazz, path, check):
@@ -98,25 +106,25 @@ def __parse(value: any, clazz, path):
 def __generate(value: object, path):
 
     if is_dataclass(value):
-        tree = {k: __generate(v, f'{path}.{k}') for k, v in asdict(value).items()}
+        tree = {k: __generate(v, f"{path}.{k}") for k, v in asdict(value).items()}
         return ConfigTree(tree)
 
     if isinstance(value, dict):
-        tree = {k: __generate(v, f'{path}.{k}') for k, v in value.items()}
+        tree = {k: __generate(v, f"{path}.{k}") for k, v in value.items()}
         return ConfigTree(tree)
 
     if isinstance(value, list):
-        tree = [__generate(e, f'{path}[]') for e in value]
+        tree = [__generate(e, f"{path}[]") for e in value]
         return ConfigList(tree)
 
     if isinstance(value, timedelta):
         ret = ""
         if value.days > 0:
-            ret += f'{value.days}d '
+            ret += f"{value.days}d "
         if value.seconds > 0:
-            ret += f'{value.seconds}s '
+            ret += f"{value.seconds}s "
         if value.microseconds > 0:
-            ret += f'{value.microseconds}us '
+            ret += f"{value.microseconds}us "
         return ret.strip()
 
     return value
@@ -141,12 +149,14 @@ def loads(string: str, clazz):
             f'parsing failure line {e.lineno} character {e.col}, got "{e.line}"'
         )
 
+
 def dump(file: str, instance: object, out: FileType = FileType.HOCON):
-    with open(file, 'w') as f:
+    with open(file, "w") as f:
         f.write(dumps(instance, out=out))
-   
+
+
 def dumps(instance: object, out: FileType = FileType.HOCON):
-    conf = __generate(instance, '')
+    conf = __generate(instance, "")
 
     if out == FileType.HOCON:
         return HOCONConverter.to_hocon(conf)
@@ -158,4 +168,3 @@ def dumps(instance: object, out: FileType = FileType.HOCON):
         return HOCONConverter.to_properties(conf)
 
     raise conf
-

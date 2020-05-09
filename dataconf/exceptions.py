@@ -4,4 +4,3 @@ class TypeConfigException(Exception):
 
 class MalformedConfigException(Exception):
     pass
-

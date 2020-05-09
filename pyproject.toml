@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "dataconf"
 version = "1.0.0"
-description = "Configuration by automatic dataclasses parsing (JSON/YAML/HOCON)"
+description = "Lightweight configuration with automatic dataclasses parsing (HOCON/JSON/YAML/PROPERTIES)"
 authors = []
 license = "Apache2"
 readme = "README.md"
@@ -24,8 +24,7 @@ pyhocon = "^0.3.54"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.4"
-flake8 = "^3.7.9"
-black = "^19.10b0"
+pre-commit = "^2.3.0"
 
 [build-system]
 requires = ["poetry"]

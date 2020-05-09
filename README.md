@@ -1,5 +1,7 @@
 # Dataconf
 
+[![Build Status](https://travis-ci.org/zifeo/dataconf.svg?branch=master)](https://travis-ci.org/zifeo/dataconf)
+
 ## Getting started
 
 ```bash

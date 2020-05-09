@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from typing import List, Union, Optional
 from datetime import timedelta
+from typing import List
+from typing import Optional
+from typing import Union
 
 
 @dataclass
