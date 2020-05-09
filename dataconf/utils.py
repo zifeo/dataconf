@@ -1,13 +1,22 @@
-from pyhocon import ConfigFactory
-from pyhocon.config_tree import ConfigTree
+from pyhocon import ConfigFactory, HOCONConverter
+from pyhocon.config_tree import ConfigTree, ConfigList
 from pyhocon.exceptions import ConfigMissingException
-from dataclasses import is_dataclass, fields, _MISSING_TYPE
-from typing import get_origin, get_args, Union, Optional
+from dataclasses import is_dataclass, fields, asdict
+from typing import get_origin, get_args, Union
 from dataconf.exceptions import TypeConfigException, MalformedConfigException
 import pyparsing
 from datetime import timedelta
+import enum
+
 
 NoneType = type(None)
+
+class FileType(enum.Enum):
+    HOCON = 'hocon'
+    JSON = 'json'
+    YAML = 'yaml'
+    PROPERTIES = 'properties'
+
 
 def __parse_type(value, clazz, path, check):
     try:
@@ -16,7 +25,7 @@ def __parse_type(value, clazz, path, check):
     except TypeError:
         pass
 
-    raise TypeConfigException(f'expected type {clazz} at {path}, got {type(value)}')
+    raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
 
 
 def __parse(value: any, clazz, path):
@@ -24,7 +33,9 @@ def __parse(value: any, clazz, path):
     if is_dataclass(clazz):
 
         if not isinstance(value, ConfigTree):
-            raise TypeConfigException(f'expected type {clazz} at {path}, got {type(value)}')
+            raise TypeConfigException(
+                f"expected type {clazz} at {path}, got {type(value)}"
+            )
 
         fs = {}
 
@@ -36,7 +47,7 @@ def __parse(value: any, clazz, path):
                     val = f.default()
                 else:
                     val = None
-            fs[f.name] = __parse(val, f.type, f'{path}.{f.name}')
+            fs[f.name] = __parse(val, f.type, f"{path}.{f.name}")
 
         return clazz(**fs)
 
@@ -44,10 +55,10 @@ def __parse(value: any, clazz, path):
     args = get_args(clazz)
 
     if origin is list:
-        return [__parse(v, args[0], f'{path}[]') for v in value]
+        return [__parse(v, args[0], f"{path}[]") for v in value]
 
     if origin is dict:
-        return {k: __parse(v, args[1], f'{path}.{k}') for k, v in value.items()}
+        return {k: __parse(v, args[1], f"{path}.{k}") for k, v in value.items()}
 
     if origin is Union:
         left, right = args
@@ -55,13 +66,16 @@ def __parse(value: any, clazz, path):
         try:
             return __parse(value, left, path)
         except TypeConfigException as left_failure:
+            # Optional = Union[T, NoneType]
             if right is NoneType:
                 return None
 
             try:
                 return __parse(value, right, path)
             except TypeConfigException as right_failure:
-                raise TypeConfigException(f'expected type {clazz} at {path}, failed both:\n- {left_failure}\n- {right_failure}')
+                raise TypeConfigException(
+                    f"expected type {clazz} at {path}, failed both:\n- {left_failure}\n- {right_failure}"
+                )
 
     if clazz is int:
         return __parse_type(value, clazz, path, isinstance(value, int))
@@ -78,31 +92,70 @@ def __parse(value: any, clazz, path):
     if clazz is ConfigTree:
         return __parse_type(value, clazz, path, isinstance(value, ConfigTree))
 
-    raise TypeConfigException(f'expected type {clazz} at {path}, got {type(value)}')
+    raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
+
+
+def __generate(value: object, path):
+
+    if is_dataclass(value):
+        tree = {k: __generate(v, f'{path}.{k}') for k, v in asdict(value).items()}
+        return ConfigTree(tree)
+
+    if isinstance(value, dict):
+        tree = {k: __generate(v, f'{path}.{k}') for k, v in value.items()}
+        return ConfigTree(tree)
+
+    if isinstance(value, list):
+        tree = [__generate(e, f'{path}[]') for e in value]
+        return ConfigList(tree)
+
+    if isinstance(value, timedelta):
+        ret = ""
+        if value.days > 0:
+            ret += f'{value.days}d '
+        if value.seconds > 0:
+            ret += f'{value.seconds}s '
+        if value.microseconds > 0:
+            ret += f'{value.microseconds}us '
+        return ret.strip()
+
+    return value
 
 
 def load(file: str, clazz):
     try:
         conf = ConfigFactory.parse_file(file)
-        return __parse(conf, clazz, '')
+        return __parse(conf, clazz, "")
     except pyparsing.ParseSyntaxException as e:
-        raise MalformedConfigException(f'parsing failure line {e.lineno} character {e.col}, got "{e.line}"')
+        raise MalformedConfigException(
+            f'parsing failure line {e.lineno} character {e.col}, got "{e.line}"'
+        )
 
 
 def loads(string: str, clazz):
     try:
         conf = ConfigFactory.parse_string(string)
-        return __parse(conf, clazz, '')
+        return __parse(conf, clazz, "")
     except pyparsing.ParseSyntaxException as e:
-        raise MalformedConfigException(f'parsing failure line {e.lineno} character {e.col}, got "{e.line}"')
+        raise MalformedConfigException(
+            f'parsing failure line {e.lineno} character {e.col}, got "{e.line}"'
+        )
 
+def dump(file: str, instance: object, out: FileType = FileType.HOCON):
+    with open(file, 'w') as f:
+        f.write(dumps(instance, out=out))
+   
+def dumps(instance: object, out: FileType = FileType.HOCON):
+    conf = __generate(instance, '')
 
+    if out == FileType.HOCON:
+        return HOCONConverter.to_hocon(conf)
+    if out == FileType.YAML:
+        return HOCONConverter.to_yaml(conf)
+    if out == FileType.JSON:
+        return HOCONConverter.to_json(conf)
+    if out == FileType.PROPERTIES:
+        return HOCONConverter.to_properties(conf)
 
-def dump(file: str, instance):
-    return None
-
-
-def dumps(string: str, clazz):
-    return ""
-
+    raise conf
 
