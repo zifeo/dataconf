@@ -21,6 +21,7 @@ poetry add git+https://github.com/zifeo/dataconf.git
 
 ```python
 from dataclasses import dataclass, field
+from typing import List, Dict, Union
 
 conf = """
 str = test
@@ -39,6 +40,7 @@ nested_list = [
     }
 ]
 duration = 2s
+union = 1
 """
 
 @dataclass
@@ -53,10 +55,11 @@ class Config:
     nested: Nested
     nested_list: List[Nested]
     duration: timedelta
-    default_factory: List[str] = field(default_factory=list)
+    default_factory: Dict[str, str] = field(default_factory=dict)
+    union: Union[str, int]
 
 print(dataconf.load(conf, Config))
-# TestConf(test='pc.home', float=2.1, list=['a', 'b'], nested=Nested(a='test'), nested_list=[Nested(a='test1')], duration=datetime.timedelta(seconds=2), default_factory=[])
+# TestConf(test='pc.home', float=2.1, list=['a', 'b'], nested=Nested(a='test'), nested_list=[Nested(a='test1')], duration=datetime.timedelta(seconds=2), default_factory={}, union=1)
 ```
 
 ```python
