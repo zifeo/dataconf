@@ -8,11 +8,16 @@
 Requires at least Python 3.8.
 
 ```bash
-pip3 install --upgrade git+https://github.com/zifeo/dataconf.git
+# pypi
+pip install dataconf
+poetry add dataconf
+
+# master
+pip install --upgrade git+https://github.com/zifeo/dataconf.git
 poetry add git+https://github.com/zifeo/dataconf.git
 ```
 
-## Examples
+## Usage
 
 ```python
 conf = """
