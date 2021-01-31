@@ -1,6 +1,7 @@
 # Dataconf
 
-[![Build Status](https://travis-ci.org/zifeo/dataconf.svg?branch=master)](https://travis-ci.org/zifeo/dataconf)
+[![Actions Status](https://github.com/zifeo/dataconf/workflows/CI/badge.svg)](https://github.com/zifeo/dataconf/actions)
+[![PyPI version](https://badge.fury.io/py/dataconf.svg)](https://badge.fury.io/py/dataconf)
 
 ## Getting started
 

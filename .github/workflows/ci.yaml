@@ -26,7 +26,7 @@ jobs:
       uses: pre-commit/action@v2.0.0
     - name: Run tests
       run: |
-        pytest -s tests  
+        poetry run pytest -s tests
 
   publish:
     needs: test
