@@ -20,6 +20,8 @@ poetry add git+https://github.com/zifeo/dataconf.git
 ## Usage
 
 ```python
+from dataclasses import dataclass, field
+
 conf = """
 str = test
 str = ${HOSTNAME}
@@ -31,7 +33,7 @@ list = [
 nested {
     a = test
 }
-nestedList = [
+nested_list = [
     {
         a = test1
     }
@@ -49,15 +51,17 @@ class Config:
     float: float
     list: List[str]
     nested: Nested
-    nestedList: List[Nested]
+    nested_list: List[Nested]
     duration: timedelta
+    default_factory: List[str] = field(default_factory=list)
 
-import dataconf
 print(dataconf.load(conf, Config))
-# TestConf(test='pc.home', float=2.1, list=['a', 'b'], nested=Nested(a='test'), nestedList=[Nested(a='test1')], duration=datetime.timedelta(seconds=2))
+# TestConf(test='pc.home', float=2.1, list=['a', 'b'], nested=Nested(a='test'), nested_list=[Nested(a='test1')], duration=datetime.timedelta(seconds=2), default_factory=[])
 ```
 
 ```python
+import dataconf
+
 conf = dataconf.loads('confs/test.hocon', Config)
 conf = dataconf.loads('confs/test.json', Config)
 conf = dataconf.loads('confs/test.yaml', Config)

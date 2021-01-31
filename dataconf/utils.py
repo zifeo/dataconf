@@ -43,10 +43,10 @@ def __parse(value: any, clazz, path):
             try:
                 val = value[f.name]
             except ConfigMissingException:
-                if callable(f.default):
-                    val = f.default()
+                if callable(f.default_factory):
+                    val = f.default_factory()
                 else:
-                    val = None
+                    val = f.default
             fs[f.name] = __parse(val, f.type, f"{path}.{f.name}")
 
         return clazz(**fs)

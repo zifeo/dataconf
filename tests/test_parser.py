@@ -109,7 +109,7 @@ class TestParser:
     def test_empty_list(self):
         @dataclass
         class A:
-            b: List[str] = field(default=lambda: [])
+            b: List[str] = field(default_factory=list)
 
         conf = ""
         assert loads(conf, A) == A(b=[])
@@ -135,3 +135,10 @@ class TestParser:
         b: c
         """
         assert loads(conf, A) == A(b="c")
+
+    def test_default_value(self):
+        @dataclass
+        class A:
+            b: str = "c"
+
+        assert loads("", A) == A(b="c")
