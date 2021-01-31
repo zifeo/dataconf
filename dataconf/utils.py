@@ -7,6 +7,7 @@ from typing import get_origin
 from typing import Union
 
 from dataconf.exceptions import MalformedConfigException
+from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import TypeConfigException
 from pyhocon import ConfigFactory
 from pyhocon import HOCONConverter
@@ -55,9 +56,15 @@ def __parse(value: any, clazz, path):
     args = get_args(clazz)
 
     if origin is list:
+        if len(args) != 1:
+            raise MissingTypeException("excepted list with type information: List[?]")
         return [__parse(v, args[0], f"{path}[]") for v in value]
 
     if origin is dict:
+        if len(args) != 2:
+            raise MissingTypeException(
+                "excepted dict with type information: Dict[?, ?]"
+            )
         return {k: __parse(v, args[1], f"{path}.{k}") for k, v in value.items()}
 
     if origin is Union:

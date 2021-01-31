@@ -6,6 +6,8 @@ from typing import Optional
 from typing import Union
 
 from dataconf import loads
+from dataconf.exceptions import MissingTypeException
+import pytest
 
 
 class TestParser:
@@ -142,3 +144,18 @@ class TestParser:
             b: str = "c"
 
         assert loads("", A) == A(b="c")
+
+    def test_root_dict(self):
+
+        conf = """
+        b: c
+        """
+        assert loads(conf, Dict[str, str]) == dict(b="c")
+
+    def test_missing_type(self):
+
+        with pytest.raises(MissingTypeException):
+            loads("", Dict)
+
+        with pytest.raises(MissingTypeException):
+            loads("", List)
