@@ -1,7 +1,6 @@
 from dataclasses import asdict
 from dataclasses import fields
 from dataclasses import is_dataclass
-from datetime import timedelta
 from typing import get_args
 from typing import get_origin
 from typing import Union
@@ -9,6 +8,7 @@ from typing import Union
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import TypeConfigException
+from dateutil.relativedelta import relativedelta
 from pyhocon import ConfigFactory
 from pyhocon import HOCONConverter
 from pyhocon.config_tree import ConfigList
@@ -93,8 +93,8 @@ def __parse(value: any, clazz, path):
     if clazz is str:
         return __parse_type(value, clazz, path, isinstance(value, str))
 
-    if clazz is timedelta:
-        return __parse_type(value, clazz, path, isinstance(value, timedelta))
+    if clazz is relativedelta:
+        return __parse_type(value, clazz, path, isinstance(value, relativedelta))
 
     if clazz is ConfigTree:
         return __parse_type(value, clazz, path, isinstance(value, ConfigTree))
@@ -116,15 +116,9 @@ def __generate(value: object, path):
         tree = [__generate(e, f"{path}[]") for e in value]
         return ConfigList(tree)
 
-    if isinstance(value, timedelta):
-        ret = ""
-        if value.days > 0:
-            ret += f"{value.days}d "
-        if value.seconds > 0:
-            ret += f"{value.seconds}s "
-        if value.microseconds > 0:
-            ret += f"{value.microseconds}us "
-        return ret.strip()
+    # needs a better impl.
+    # if isinstance(value, timedelta):
+    # if isinstance(value, relativedelta):
 
     return value
 

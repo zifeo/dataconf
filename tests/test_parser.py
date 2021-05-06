@@ -7,6 +7,7 @@ from typing import Union
 
 from dataconf import loads
 from dataconf.exceptions import MissingTypeException
+from dateutil.relativedelta import relativedelta
 import pytest
 
 
@@ -20,6 +21,16 @@ class TestParser:
         a = test
         """
         assert loads(conf, A) == A(a="test")
+
+    def test_relativedelta(self):
+        @dataclass
+        class A:
+            a: relativedelta
+
+        conf = """
+        a = 2d
+        """
+        assert loads(conf, A) == A(a=relativedelta(days=2))
 
     def test_list(self):
         @dataclass
