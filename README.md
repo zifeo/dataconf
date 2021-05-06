@@ -22,6 +22,8 @@ poetry add git+https://github.com/zifeo/dataconf.git
 ```python
 from dataclasses import dataclass, field
 from typing import List, Dict, Union
+from dateutil.relativedelta import relativedelta
+import dataconf
 
 conf = """
 str = test
@@ -54,7 +56,7 @@ class Config:
     list: List[str]
     nested: Nested
     nested_list: List[Nested]
-    duration: timedelta
+    duration: relativedelta
     default_factory: Dict[str, str] = field(default_factory=dict)
     union: Union[str, int]
 
