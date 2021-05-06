@@ -1,14 +1,14 @@
 repos:
 - repo: https://github.com/sqlalchemyorg/zimports/
-  rev: 0.2.0
+  rev: 0.3.0
   hooks:
   - id: zimports
 - repo: https://github.com/psf/black
-  rev: 20.8b1
+  rev: 21.5b0
   hooks:
   - id: black
 - repo: https://gitlab.com/pycqa/flake8
-  rev: 3.8.4
+  rev: 3.9.1
   hooks:
   - id: flake8
 - repo: https://github.com/zifeo/pre-commit
