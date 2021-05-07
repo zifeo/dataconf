@@ -53,6 +53,7 @@ class Nested:
 class Config:
     str: str
     float: float
+    default: str = 'hello'
     list: List[str]
     nested: Nested
     nested_list: List[Nested]
@@ -61,7 +62,7 @@ class Config:
     union: Union[str, int]
 
 print(dataconf.load(conf, Config))
-# TestConf(test='pc.home', float=2.1, list=['a', 'b'], nested=Nested(a='test'), nested_list=[Nested(a='test1')], duration=datetime.timedelta(seconds=2), default_factory={}, union=1)
+# TestConf(test='pc.home', float=2.1, default='hello', list=['a', 'b'], nested=Nested(a='test'), nested_list=[Nested(a='test1')], duration=relativedelta(seconds=+2), default_factory={}, union=1)
 ```
 
 ```python
