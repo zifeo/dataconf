@@ -44,6 +44,16 @@ class TestParser:
         """
         assert loads(conf, A) == A(a=["test"])
 
+    def test_boolean(self):
+        @dataclass
+        class A:
+            a: bool
+
+        conf = """
+        a = false
+        """
+        assert loads(conf, A) == A(a=False)
+
     def test_dict(self):
         @dataclass
         class A:

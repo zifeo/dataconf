@@ -84,6 +84,9 @@ def __parse(value: any, clazz, path):
                     f"expected type {clazz} at {path}, failed both:\n- {left_failure}\n- {right_failure}"
                 )
 
+    if clazz is bool:
+        return __parse_type(value, clazz, path, isinstance(value, bool))
+
     if clazz is int:
         return __parse_type(value, clazz, path, isinstance(value, int))
 
