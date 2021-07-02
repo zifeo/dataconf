@@ -8,6 +8,7 @@ from typing import Union
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import TypeConfigException
+from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
 from pyhocon import ConfigFactory
 from pyhocon import HOCONConverter
@@ -49,6 +50,12 @@ def __parse(value: any, clazz, path):
                 else:
                     val = f.default
             fs[f.name] = __parse(val, f.type, f"{path}.{f.name}")
+
+        unexpected_keys = value.keys() - fs.keys()
+        if len(unexpected_keys) > 0:
+            raise UnexpectedKeysException(
+                f"unexpected keys {', '.join(unexpected_keys)} detected for type {clazz} at {path}"
+            )
 
         return clazz(**fs)
 

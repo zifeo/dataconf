@@ -8,3 +8,7 @@ class MissingTypeException(Exception):
 
 class MalformedConfigException(Exception):
     pass
+
+
+class UnexpectedKeysException(Exception):
+    pass

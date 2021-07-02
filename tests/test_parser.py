@@ -7,6 +7,7 @@ from typing import Union
 
 from dataconf import loads
 from dataconf.exceptions import MissingTypeException
+from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
 import pytest
 
@@ -180,3 +181,21 @@ class TestParser:
 
         with pytest.raises(MissingTypeException):
             loads("", List)
+
+    def test_misformat(self):
+
+        conf = """
+        b {}
+        c {
+            f {
+        }
+        d {}
+        }
+        """
+
+        @dataclass
+        class Clazz:
+            f: Dict[str, str] = field(default_factory=dict)
+
+        with pytest.raises(UnexpectedKeysException):
+            loads(conf, Dict[str, Clazz])
