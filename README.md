@@ -3,6 +3,8 @@
 [![Actions Status](https://github.com/zifeo/dataconf/workflows/CI/badge.svg)](https://github.com/zifeo/dataconf/actions)
 [![PyPI version](https://badge.fury.io/py/dataconf.svg)](https://badge.fury.io/py/dataconf)
 
+Lightweight configuration with automatic dataclasses parsing (hocon/json/yaml/properties files).
+
 ## Getting started
 
 Requires at least Python 3.8.
