@@ -1,5 +1,8 @@
 from dataclasses import dataclass
-from typing import List, Optional, Text, Union
+from typing import List
+from typing import Optional
+from typing import Text
+from typing import Union
 
 from dateutil.relativedelta import relativedelta
 

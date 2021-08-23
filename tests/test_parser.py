@@ -1,16 +1,23 @@
-import os
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Dict, List, Optional, Text, Union
+import os
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Text
+from typing import Union
 
-from dataconf import load, loads
+from dataconf import load
+from dataconf import loads
 from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
 import pytest
 
 
-PARENT_DIR = os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + os.sep + os.pardir)
+PARENT_DIR = os.path.normpath(
+    os.path.dirname(os.path.realpath(__file__)) + os.sep + os.pardir
+)
 
 
 class TestParser:
@@ -219,7 +226,10 @@ class TestParser:
             tfx_root: Optional[Text] = None
             metadata_root: Optional[Text] = None
             beam_args: Optional[List[Text]] = field(
-                default_factory=lambda: ["--direct_running_mode=multi_processing", "--direct_num_workers=0"]
+                default_factory=lambda: [
+                    "--direct_running_mode=multi_processing",
+                    "--direct_num_workers=0",
+                ]
             )
 
         conf = load(os.path.join(PARENT_DIR, "confs", "complex.hocon"), Base)
@@ -229,5 +239,5 @@ class TestParser:
             pipeline_name="Penguin-Config",
             data_type="tfrecord",
             production=True,
-            conn=Conn(host="test.server.io", port=443)
+            conn=Conn(host="test.server.io", port=443),
         )
