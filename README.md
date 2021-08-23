@@ -17,6 +17,10 @@ poetry add dataconf
 # master
 pip install --upgrade git+https://github.com/zifeo/dataconf.git
 poetry add git+https://github.com/zifeo/dataconf.git
+
+# dev
+poetry install
+pre-commit install
 ```
 
 ## Usage
