@@ -5,4 +5,4 @@ production: true
 conn {
     host: test.server.io
     port: 443
-    }
+}
