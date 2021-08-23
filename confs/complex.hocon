@@ -1,0 +1,8 @@
+data_root: /some/path/here
+pipeline_name: Penguin-Config
+data_type: tfrecord
+production: true
+conn {
+    host: test.server.io
+    port: 443
+}
