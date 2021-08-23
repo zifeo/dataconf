@@ -23,15 +23,15 @@ poetry add git+https://github.com/zifeo/dataconf.git
 
 ```python
 from dataclasses import dataclass, field
-from typing import List, Dict, Union
+from typing import List, Dict, Text, Union
 from dateutil.relativedelta import relativedelta
 import dataconf
 
 conf = """
-str = test
-str = ${HOSTNAME}
-float = 2.2
-list = [
+str_name = test
+str_name = ${HOSTNAME}
+float_num = 2.2
+list_data = [
     a
     b
 ]
@@ -49,19 +49,19 @@ union = 1
 
 @dataclass
 class Nested:
-    a: str
+    a: Text
 
 @dataclass
 class Config:
-    str: str
-    float: float
-    default: str = 'hello'
-    list: List[str]
+    str_name: Text
+    float_num: float
+    list_data: List[Text]
     nested: Nested
     nested_list: List[Nested]
     duration: relativedelta
-    default_factory: Dict[str, str] = field(default_factory=dict)
-    union: Union[str, int]
+    union: Union[Text, int]
+    default: Text = 'hello'
+    default_factory: Dict[Text, Text] = field(default_factory=dict)
 
 print(dataconf.load(conf, Config))
 # TestConf(test='pc.home', float=2.1, default='hello', list=['a', 'b'], nested=Nested(a='test'), nested_list=[Nested(a='test1')], duration=relativedelta(seconds=+2), default_factory={}, union=1)

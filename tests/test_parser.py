@@ -1,9 +1,6 @@
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Dict, List, Optional, Text, Union
 
 from dataconf import loads
 from dataconf.exceptions import MissingTypeException
@@ -16,7 +13,7 @@ class TestParser:
     def test_simple(self):
         @dataclass
         class A:
-            a: str
+            a: Text
 
         conf = """
         a = test
@@ -36,7 +33,7 @@ class TestParser:
     def test_list(self):
         @dataclass
         class A:
-            a: List[str]
+            a: List[Text]
 
         conf = """
         a = [
@@ -58,7 +55,7 @@ class TestParser:
     def test_dict(self):
         @dataclass
         class A:
-            a: Dict[str, str]
+            a: Dict[Text, Text]
 
         conf = """
         a {
@@ -70,7 +67,7 @@ class TestParser:
     def test_nested(self):
         @dataclass
         class B:
-            a: str
+            a: Text
 
         @dataclass
         class A:
@@ -86,11 +83,11 @@ class TestParser:
     def test_union(self):
         @dataclass
         class B:
-            a: str
+            a: Text
 
         @dataclass
         class A:
-            b: Union[B, str]
+            b: Union[B, Text]
 
         conf = """
         b {
@@ -107,7 +104,7 @@ class TestParser:
     def test_optional(self):
         @dataclass
         class A:
-            b: Optional[str] = None
+            b: Optional[Text] = None
 
         conf = ""
         assert loads(conf, A) == A(b=None)
@@ -120,7 +117,7 @@ class TestParser:
     def test_optional_with_default(self):
         @dataclass
         class A:
-            b: Optional[str]
+            b: Optional[Text]
 
         conf = ""
         assert loads(conf, A) == A(b=None)
@@ -133,7 +130,7 @@ class TestParser:
     def test_empty_list(self):
         @dataclass
         class A:
-            b: List[str] = field(default_factory=list)
+            b: List[Text] = field(default_factory=list)
 
         conf = ""
         assert loads(conf, A) == A(b=[])
@@ -141,7 +138,7 @@ class TestParser:
     def test_json(self):
         @dataclass
         class A:
-            b: str
+            b: Text
 
         conf = """
         {
@@ -153,7 +150,7 @@ class TestParser:
     def test_yaml(self):
         @dataclass
         class A:
-            b: str
+            b: Text
 
         conf = """
         b: c
@@ -163,7 +160,7 @@ class TestParser:
     def test_default_value(self):
         @dataclass
         class A:
-            b: str = "c"
+            b: Text = "c"
 
         assert loads("", A) == A(b="c")
 
@@ -172,7 +169,7 @@ class TestParser:
         conf = """
         b: c
         """
-        assert loads(conf, Dict[str, str]) == dict(b="c")
+        assert loads(conf, Dict[Text, Text]) == dict(b="c")
 
     def test_missing_type(self):
 
@@ -195,7 +192,7 @@ class TestParser:
 
         @dataclass
         class Clazz:
-            f: Dict[str, str] = field(default_factory=dict)
+            f: Dict[Text, Text] = field(default_factory=dict)
 
         with pytest.raises(UnexpectedKeysException):
-            loads(conf, Dict[str, Clazz])
+            loads(conf, Dict[Text, Clazz])

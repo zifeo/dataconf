@@ -1,24 +1,22 @@
 from dataclasses import dataclass
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import List, Optional, Text, Union
 
 from dateutil.relativedelta import relativedelta
 
 
 @dataclass
 class Nested:
-    a: str
+    a: Text
 
 
 @dataclass
 class TestConf:
-    int: int
-    float: float
-    str: str
-    list: List[str]
+    num: int
+    float_amount: float
+    str_name: Text
+    data_list: List[Text]
     nested: Nested
     nestedList: List[Nested]
-    optional: Optional[str]
-    union: Union[str, int]
+    optional: Optional[Text]
+    union: Union[Text, int]
     duration: relativedelta
