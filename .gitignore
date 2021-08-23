@@ -25,3 +25,4 @@ MANIFEST
 .pytest_cache/
 .venv/
 .vscode/
+.idea
