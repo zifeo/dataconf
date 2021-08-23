@@ -223,4 +223,11 @@ class TestParser:
             )
 
         conf = load(os.path.join(PARENT_DIR, "confs", "complex.hocon"), Base)
-        a = 1
+
+        assert conf == Base(
+            data_root="/some/path/here",
+            pipeline_name="Penguin-Config",
+            data_type="tfrecord",
+            production=True,
+            conn=Conn(host="test.server.io", port=443)
+        )
