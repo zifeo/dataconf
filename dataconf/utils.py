@@ -113,6 +113,18 @@ def __parse(value: any, clazz, path):
     if clazz is ConfigTree:
         return __parse_type(value, clazz, path, isinstance(value, ConfigTree))
 
+    # Todo: this should be cleaner
+    #       iterates through class dict to check for subclasses
+    #       if subclasses are a dataclass parse values
+    #       the idea here is to replicate parsing of a sealed trait in Scala
+    #       when using pureconfig
+    print(value)
+    for sub_data in [i for i in dir(clazz) if is_dataclass(getattr(clazz, i))]:
+        if set([i.name for i in fields(getattr(clazz, sub_data))]) == set(value.keys()):
+            # currently failing since the new data class is subclass type
+            # but the type passed
+            return __parse(value, getattr(clazz, sub_data), "")
+
     raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
 
 
