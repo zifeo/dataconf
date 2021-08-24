@@ -14,6 +14,8 @@ from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
 import pytest
 
+from .scala_sealed_trait import InputType
+
 
 PARENT_DIR = os.path.normpath(
     os.path.dirname(os.path.realpath(__file__)) + os.sep + os.pardir
@@ -240,4 +242,50 @@ class TestParser:
             data_type="tfrecord",
             production=True,
             conn=Conn(host="test.server.io", port=443),
+        )
+
+    # Todo: input_source: InputType.__class__ should be passed
+    #       causes abstract method error will looking into it later
+    def test_traits_string_impl(self) -> None:
+        @dataclass
+        class Base:
+            location: Text
+            input_source: InputType
+
+        str_conf = """
+        {
+            location: Europe
+            input_source {
+                name: Thailand
+                age: "12"
+            }
+        }
+        """
+
+        conf = loads(str_conf, Base)
+        assert conf == Base(
+            location="Europe",
+            input_source=InputType.StringImpl(name="Thailand", age="12")
+        )
+
+    def test_traits_int_impl(self) -> None:
+        @dataclass
+        class Base:
+            location: Text
+            input_source: InputType
+
+        str_conf = """
+        {
+            location: Europe
+            input_source {
+                area_code: 94
+                phone_num: "1234567"
+            }
+        }
+        """
+
+        conf = loads(str_conf, Base)
+        assert conf == Base(
+            location="Europe",
+            input_source=InputType.IntImpl(area_code=94, phone_num="1234567")
         )
