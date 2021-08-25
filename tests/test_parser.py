@@ -268,6 +268,7 @@ class TestParser:
             input_source=InputType.StringImpl(name="Thailand", age="12")
         )
         assert conf.input_source.test_method() == "Thailand is 12 years old."
+        assert conf.input_source.test_complex() == 36
 
     def test_traits_int_impl(self) -> None:
         @dataclass
@@ -291,3 +292,4 @@ class TestParser:
             input_source=InputType.IntImpl(area_code=94, phone_num="1234567")
         )
         assert conf.input_source.test_method() == "The area code for 1234567 is 94"
+        assert conf.input_source.test_complex() == 84
