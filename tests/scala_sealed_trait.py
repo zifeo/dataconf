@@ -9,7 +9,7 @@ class InputType:
         age: Text
 
         def test_method(self):
-            print(f"{self.name} is {self.age} years old.")
+            return f"{self.name} is {self.age} years old."
 
     @dataclass(init=True, repr=True)
     class IntImpl:
@@ -17,4 +17,4 @@ class InputType:
         phone_num: Text
 
         def test_method(self):
-            print(f"The area code for {self.phone_num} is {str(self.area_code)}")
+            return f"The area code for {self.phone_num} is {str(self.area_code)}"
