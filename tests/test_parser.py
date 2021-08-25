@@ -244,8 +244,6 @@ class TestParser:
             conn=Conn(host="test.server.io", port=443),
         )
 
-    # Todo: input_source: InputType.__class__ should be passed
-    #       causes abstract method error will looking into it later
     def test_traits_string_impl(self) -> None:
         @dataclass
         class Base:
