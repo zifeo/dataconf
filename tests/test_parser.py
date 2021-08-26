@@ -13,8 +13,7 @@ from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
 import pytest
-
-from .scala_sealed_trait import InputType
+from tests.scala_sealed_trait import InputType
 
 
 PARENT_DIR = os.path.normpath(
@@ -248,7 +247,7 @@ class TestParser:
         @dataclass
         class Base:
             location: Text
-            input_source: InputType()
+            input_source: Union[InputType.StringImpl, InputType.IntImpl]
 
         str_conf = """
         {
@@ -272,7 +271,7 @@ class TestParser:
         @dataclass
         class Base:
             location: Text
-            input_source: InputType()
+            input_source: Union[InputType.StringImpl, InputType.IntImpl]
 
         str_conf = """
         {
