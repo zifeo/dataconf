@@ -92,7 +92,7 @@ class InputType:
 @dataclass
 class Base:
     location: Text
-    input_source: InputType
+    input_source: Union[InputType.StringImpl, InputType.IntImpl]
 
 str_conf = """
 {
