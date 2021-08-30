@@ -271,7 +271,7 @@ class TestParser:
         @dataclass
         class Base:
             location: Text
-            input_source: Union[InputType.StringImpl, InputType.IntImpl]
+            input_source: InputType()
 
         str_conf = """
         {

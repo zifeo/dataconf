@@ -121,9 +121,11 @@ def __parse(value: any, clazz, path):
     for key in dir(clazz):
         nested_class = getattr(clazz, key)
         if is_dataclass(nested_class):
-            field_keys = set([i.name for i in fields(getattr(clazz, nested_class))])
+            field_keys = set(
+                [i.name for i in fields(getattr(clazz, nested_class.__name__))]
+            )
             if field_keys == set(value.keys()):
-                return __parse(value, getattr(clazz, nested_class), "")
+                return __parse(value, getattr(clazz, nested_class.__name__), "")
 
     raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
 
