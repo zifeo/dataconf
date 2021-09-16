@@ -249,7 +249,7 @@ class TestParser:
         @dataclass
         class Base:
             location: Text
-            input_source: InputType()
+            input_source: InputType
 
         str_conf = """
         {

@@ -118,14 +118,20 @@ def __parse(value: any, clazz, path):
     #       if subclasses are a dataclass parse values
     #       the idea here is to replicate parsing of a sealed trait in Scala
     #       when using pureconfig
-    for key in dir(clazz):
-        nested_class = getattr(clazz, key)
-        if is_dataclass(nested_class):
-            field_keys = set(
-                [i.name for i in fields(getattr(clazz, nested_class.__name__))]
-            )
-            if field_keys == set(value.keys()):
-                return __parse(value, getattr(clazz, nested_class.__name__), "")
+    child_failures = []
+    for child_clazz in sorted(clazz.__subclasses__(), key=lambda c: c.__name__):
+        if is_dataclass(child_clazz):
+            try:
+                return __parse(value, child_clazz, path)
+            except TypeConfigException as f:
+                child_failures.append(str(f))
+
+    # no need to check length; false if empty
+    if child_failures:
+        fails = "\n- ".join(child_failures)
+        raise TypeConfigException(
+            f"expected type {clazz} at {path}, failed subclasses:{fails}"
+        )
 
     raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
 
