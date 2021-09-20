@@ -69,6 +69,50 @@ class Config:
 
 print(dataconf.load(conf, Config))
 # TestConf(test='pc.home', float=2.1, default='hello', list=['a', 'b'], nested=Nested(a='test'), nested_list=[Nested(a='test1')], duration=relativedelta(seconds=+2), default_factory={}, union=1)
+
+# Replicating pureconfig Scala sealed trait case class behavior
+# https://pureconfig.github.io/docs/overriding-behavior-for-sealed-families.html
+class InputType:
+    """
+    Abstract base class
+    """
+    pass
+    
+    
+@dataclass(init=True, repr=True)
+class StringImpl(InputType):
+    name: Text
+    age: Text
+
+    def test_method(self):
+        print(f"{self.name} is {self.age} years old.")
+
+        
+@dataclass(init=True, repr=True)
+class IntImpl(InputType):
+    area_code: int
+    phone_num: Text
+
+    def test_method(self):
+        print(f"The area code for {self.phone_num} is {str(self.area_code)}")
+
+        
+@dataclass
+class Base:
+    location: Text
+    input_source: InputType
+
+str_conf = """
+{
+    location: Europe
+    input_source {
+        name: Thailand
+        age: "12"
+    }
+}
+"""
+
+conf = dataconf.loads(str_conf, Base)
 ```
 
 ```python

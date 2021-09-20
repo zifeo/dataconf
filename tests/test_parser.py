@@ -9,10 +9,14 @@ from typing import Union
 
 from dataconf import load
 from dataconf import loads
+import dataconf.exceptions
 from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
 import pytest
+from tests.scala_sealed_trait import InputType
+from tests.scala_sealed_trait import IntImpl
+from tests.scala_sealed_trait import StringImpl
 
 
 PARENT_DIR = os.path.normpath(
@@ -240,4 +244,78 @@ class TestParser:
             data_type="tfrecord",
             production=True,
             conn=Conn(host="test.server.io", port=443),
+        )
+
+    def test_traits_string_impl(self) -> None:
+        @dataclass
+        class Base:
+            location: Text
+            input_source: InputType
+
+        str_conf = """
+        {
+            location: Europe
+            input_source {
+                name: Thailand
+                age: "12"
+            }
+        }
+        """
+
+        conf = loads(str_conf, Base)
+        assert conf == Base(
+            location="Europe",
+            input_source=StringImpl(name="Thailand", age="12"),
+        )
+        assert conf.input_source.test_method() == "Thailand is 12 years old."
+        assert conf.input_source.test_complex() == 36
+
+    def test_traits_int_impl(self) -> None:
+        @dataclass
+        class Base:
+            location: Text
+            input_source: InputType
+
+        str_conf = """
+        {
+            location: Europe
+            input_source {
+                area_code: 94
+                phone_num: "1234567"
+            }
+        }
+        """
+
+        conf = loads(str_conf, Base)
+        assert conf == Base(
+            location="Europe",
+            input_source=IntImpl(area_code=94, phone_num="1234567"),
+        )
+        assert conf.input_source.test_method() == "The area code for 1234567 is 94"
+        assert conf.input_source.test_complex() == 84
+
+    def test_traits_failure(self) -> None:
+        @dataclass
+        class Base:
+            location: Text
+            input_source: InputType
+
+        str_conf = """
+                {
+                    location: Europe
+                    input_source {
+                        name: Thailand
+                        age: "12"
+                        city: Paris
+                    }
+                }
+                """
+
+        with pytest.raises(Exception) as e:
+            loads(str_conf, Base)
+
+        assert e.type == dataconf.exceptions.UnexpectedKeysException
+        assert (
+            e.value.args[0] == "unexpected keys city detected for type <class "
+            "'tests.scala_sealed_trait.StringImpl'> at .input_source"
         )
