@@ -73,26 +73,34 @@ print(dataconf.load(conf, Config))
 # Replicating pureconfig Scala sealed trait case class behavior
 # https://pureconfig.github.io/docs/overriding-behavior-for-sealed-families.html
 class InputType:
-    @dataclass(init=True, repr=True)
-    class StringImpl:
-        name: Text
-        age: Text
+    """
+    Abstract base class
+    """
+    pass
+    
+    
+@dataclass(init=True, repr=True)
+class StringImpl(InputType):
+    name: Text
+    age: Text
 
-        def test_method(self):
-            print(f"{self.name} is {self.age} years old.")
+    def test_method(self):
+        print(f"{self.name} is {self.age} years old.")
 
-    @dataclass(init=True, repr=True)
-    class IntImpl:
-        area_code: int
-        phone_num: Text
+        
+@dataclass(init=True, repr=True)
+class IntImpl(InputType):
+    area_code: int
+    phone_num: Text
 
-        def test_method(self):
-            print(f"The area code for {self.phone_num} is {str(self.area_code)}")
+    def test_method(self):
+        print(f"The area code for {self.phone_num} is {str(self.area_code)}")
 
+        
 @dataclass
 class Base:
     location: Text
-    input_source: Union[InputType.StringImpl, InputType.IntImpl]
+    input_source: InputType
 
 str_conf = """
 {
