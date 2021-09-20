@@ -9,6 +9,7 @@ from typing import Union
 
 from dataconf import load
 from dataconf import loads
+import dataconf.exceptions
 from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
@@ -292,3 +293,29 @@ class TestParser:
         )
         assert conf.input_source.test_method() == "The area code for 1234567 is 94"
         assert conf.input_source.test_complex() == 84
+
+    def test_traits_failure(self) -> None:
+        @dataclass
+        class Base:
+            location: Text
+            input_source: InputType
+
+        str_conf = """
+                {
+                    location: Europe
+                    input_source {
+                        name: Thailand
+                        age: "12"
+                        city: Paris
+                    }
+                }
+                """
+
+        with pytest.raises(Exception) as e:
+            loads(str_conf, Base)
+
+        assert e.type == dataconf.exceptions.UnexpectedKeysException
+        assert (
+            e.value.args[0] == "unexpected keys city detected for type <class "
+            "'tests.scala_sealed_trait.StringImpl'> at .input_source"
+        )
