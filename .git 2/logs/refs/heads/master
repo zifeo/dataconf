@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 18e350a54c2705faf6f1e3bbda76487b1398cd45 Dustin Smith <Dustin.William.Smith@gmail.com> 1629794980 +0700	clone: from git@github.com:dwsmith1983/dataconf.git
+18e350a54c2705faf6f1e3bbda76487b1398cd45 e210aff5537a388a906099f7069cb75408b0ac3f Dustin Smith <Dustin.William.Smith@gmail.com> 1629808939 +0700	pull: Fast-forward
+e210aff5537a388a906099f7069cb75408b0ac3f 30e04ea29a6511b97eaa5e3647c113a2db69acd3 Dustin Smith <Dustin.William.Smith@gmail.com> 1629808955 +0700	commit: removed print statment
+30e04ea29a6511b97eaa5e3647c113a2db69acd3 e42a9513bb9d831f60acf9acdf51340739aac781 Dustin Smith <Dustin.William.Smith@gmail.com> 1629814407 +0700	commit: updated README to demostrate sealed traits usage with dataconf and dataclasses
+e42a9513bb9d831f60acf9acdf51340739aac781 115b0b402a211c8825722199e64fa1a97249d651 Dustin Smith <Dustin.William.Smith@gmail.com> 1629881560 +0700	pull: Fast-forward
+115b0b402a211c8825722199e64fa1a97249d651 2d0be262c9aa33385ae67734e3e42e300ef023d2 Dustin Smith <Dustin.William.Smith@gmail.com> 1629991191 +0700	commit: fixed relative to abs import in test, removed old comment, removed list comp from the for loop arg break down the for loop resulting in 0.4-0.35 test times to 0.25
+2d0be262c9aa33385ae67734e3e42e300ef023d2 50ea7e97d59b9789ad75b3fb0c481d44bdcda8cd Dustin Smith <Dustin.William.Smith@gmail.com> 1629991656 +0700	commit: updated the readme example to parallel the test
