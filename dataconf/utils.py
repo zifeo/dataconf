@@ -1,3 +1,4 @@
+from dataclasses import _MISSING_TYPE
 from dataclasses import asdict
 from dataclasses import fields
 from dataclasses import is_dataclass
@@ -30,6 +31,11 @@ def __parse_type(value, clazz, path, check):
     raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
 
 
+def is_optional(type):
+    # Optional = Union[T, NoneType]
+    return get_origin(type) is Union and NoneType in get_args(type)
+
+
 def __parse(value: any, clazz, path):
 
     if is_dataclass(clazz):
@@ -49,7 +55,18 @@ def __parse(value: any, clazz, path):
                     val = f.default_factory()
                 else:
                     val = f.default
-            fs[f.name] = __parse(val, f.type, f"{path}.{f.name}")
+
+            if not isinstance(val, _MISSING_TYPE):
+                fs[f.name] = __parse(val, f.type, f"{path}.{f.name}")
+
+            elif is_optional(f.type):
+                # Optional not found
+                fs[f.name] = None
+
+            else:
+                raise MalformedConfigException(
+                    f"expected type {clazz} at {path}, no {f.name} found in dataclass"
+                )
 
         unexpected_keys = value.keys() - fs.keys()
         if len(unexpected_keys) > 0:
@@ -78,16 +95,20 @@ def __parse(value: any, clazz, path):
             return {k: __parse(v, args[1], f"{path}.{k}") for k, v in value.items()}
         return None
 
+    if is_optional(clazz):
+        left, right = args
+        try:
+            return __parse(value, left if right is NoneType else right, path)
+        except TypeConfigException:
+            # cannot parse Optional
+            return None
+
     if origin is Union:
         left, right = args
 
         try:
             return __parse(value, left, path)
         except TypeConfigException as left_failure:
-            # Optional = Union[T, NoneType]
-            if right is NoneType:
-                return None
-
             try:
                 return __parse(value, right, path)
             except TypeConfigException as right_failure:
@@ -113,24 +134,19 @@ def __parse(value: any, clazz, path):
     if clazz is ConfigTree:
         return __parse_type(value, clazz, path, isinstance(value, ConfigTree))
 
-    # Todo: this should be cleaner
-    #       iterates through class dict to check for subclasses
-    #       if subclasses are a dataclass parse values
-    #       the idea here is to replicate parsing of a sealed trait in Scala
-    #       when using pureconfig
     child_failures = []
     for child_clazz in sorted(clazz.__subclasses__(), key=lambda c: c.__name__):
         if is_dataclass(child_clazz):
             try:
                 return __parse(value, child_clazz, path)
-            except TypeConfigException as f:
-                child_failures.append(str(f))
+            except (TypeConfigException, MalformedConfigException) as e:
+                child_failures.append(e)
 
     # no need to check length; false if empty
     if child_failures:
-        fails = "\n- ".join(child_failures)
+        failures = "\n- ".join([str(c) for c in child_failures])
         raise TypeConfigException(
-            f"expected type {clazz} at {path}, failed subclasses:{fails}"
+            f"expected type {clazz} at {path}, failed subclasses:\n- {failures}"
         )
 
     raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")

@@ -10,6 +10,7 @@ from typing import Union
 from dataconf import load
 from dataconf import loads
 import dataconf.exceptions
+from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
@@ -193,6 +194,19 @@ class TestParser:
 
         with pytest.raises(MissingTypeException):
             loads("", List)
+
+    def test_missing_field(self) -> None:
+        @dataclass
+        class A:
+            b: Text
+
+        conf = """
+        {
+            "typo": "c"
+        }
+        """
+        with pytest.raises(MalformedConfigException):
+            assert loads(conf, A) == A(b="c")
 
     def test_misformat(self) -> None:
 
