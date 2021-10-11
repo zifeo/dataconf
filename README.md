@@ -33,7 +33,8 @@ import dataconf
 
 conf = """
 str_name = test
-str_name = ${HOSTNAME}
+str_name = ${?HOSTNAME}
+dash-to-underscore = true
 float_num = 2.2
 list_data = [
     a
@@ -58,6 +59,7 @@ class Nested:
 @dataclass
 class Config:
     str_name: Text
+    dash_to_underscore: bool
     float_num: float
     list_data: List[Text]
     nested: Nested
@@ -67,8 +69,8 @@ class Config:
     default: Text = 'hello'
     default_factory: Dict[Text, Text] = field(default_factory=dict)
 
-print(dataconf.load(conf, Config))
-# TestConf(test='pc.home', float=2.1, default='hello', list=['a', 'b'], nested=Nested(a='test'), nested_list=[Nested(a='test1')], duration=relativedelta(seconds=+2), default_factory={}, union=1)
+print(dataconf.loads(conf, Config))
+# Config(str_name='/users/root', dash_to_underscore=True, float_num=2.2, list_data=['a', 'b'], nested=Nested(a='test'), nested_list=[Nested(a='test1')], duration=relativedelta(seconds=+2), union=1, default='hello', default_factory={})
 
 # Replicating pureconfig Scala sealed trait case class behavior
 # https://pureconfig.github.io/docs/overriding-behavior-for-sealed-families.html

@@ -15,7 +15,6 @@ from pyhocon import ConfigFactory
 from pyhocon import HOCONConverter
 from pyhocon.config_tree import ConfigList
 from pyhocon.config_tree import ConfigTree
-from pyhocon.exceptions import ConfigMissingException
 import pyparsing
 
 NoneType = type(None)
@@ -46,11 +45,16 @@ def __parse(value: any, clazz, path):
             )
 
         fs = {}
+        renamings = dict()
 
         for f in fields(clazz):
-            try:
+
+            if f.name in value:
                 val = value[f.name]
-            except ConfigMissingException:
+            elif f.name.replace("_", "-") in value:
+                renamings[f.name] = f.name.replace("_", "-")
+                val = value[f.name.replace("_", "-")]
+            else:
                 if callable(f.default_factory):
                     val = f.default_factory()
                 else:
@@ -68,7 +72,7 @@ def __parse(value: any, clazz, path):
                     f"expected type {clazz} at {path}, no {f.name} found in dataclass"
                 )
 
-        unexpected_keys = value.keys() - fs.keys()
+        unexpected_keys = value.keys() - {renamings.get(k, k) for k in fs.keys()}
         if len(unexpected_keys) > 0:
             raise UnexpectedKeysException(
                 f"unexpected key(s) \"{', '.join(unexpected_keys)}\" detected for type {clazz} at {path}"
