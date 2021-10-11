@@ -71,7 +71,7 @@ def __parse(value: any, clazz, path):
         unexpected_keys = value.keys() - fs.keys()
         if len(unexpected_keys) > 0:
             raise UnexpectedKeysException(
-                f"unexpected keys {', '.join(unexpected_keys)} detected for type {clazz} at {path}"
+                f"unexpected key(s) \"{', '.join(unexpected_keys)}\" detected for type {clazz} at {path}"
             )
 
         return clazz(**fs)
@@ -139,7 +139,11 @@ def __parse(value: any, clazz, path):
         if is_dataclass(child_clazz):
             try:
                 return __parse(value, child_clazz, path)
-            except (TypeConfigException, MalformedConfigException) as e:
+            except (
+                TypeConfigException,
+                MalformedConfigException,
+                UnexpectedKeysException,
+            ) as e:
                 child_failures.append(e)
 
     # no need to check length; false if empty

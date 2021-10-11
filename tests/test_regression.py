@@ -31,7 +31,7 @@ class TestParser:
         {
             name: Countries Model Parquet Version 1.0.2
             data {
-                file_paths: "../data/countries.parquet"
+                file_path: "../data/countries.parquet"
                 engine: auto
             }
         }
