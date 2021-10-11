@@ -9,8 +9,9 @@ from typing import Union
 
 from dataconf import load
 from dataconf import loads
-import dataconf.exceptions
+from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
+from dataconf.exceptions import TypeConfigException
 from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
 import pytest
@@ -194,6 +195,19 @@ class TestParser:
         with pytest.raises(MissingTypeException):
             loads("", List)
 
+    def test_missing_field(self) -> None:
+        @dataclass
+        class A:
+            b: Text
+
+        conf = """
+        {
+            "typo": "c"
+        }
+        """
+        with pytest.raises(MalformedConfigException):
+            assert loads(conf, A) == A(b="c")
+
     def test_misformat(self) -> None:
 
         conf = """
@@ -311,11 +325,11 @@ class TestParser:
                 }
                 """
 
-        with pytest.raises(Exception) as e:
+        with pytest.raises(TypeConfigException) as e:
             loads(str_conf, Base)
 
-        assert e.type == dataconf.exceptions.UnexpectedKeysException
-        assert (
-            e.value.args[0] == "unexpected keys city detected for type <class "
-            "'tests.scala_sealed_trait.StringImpl'> at .input_source"
+        assert e.value.args[0] == (
+            "expected type <class 'tests.scala_sealed_trait.InputType'> at .input_source, failed subclasses:\n"
+            "- expected type <class 'tests.scala_sealed_trait.IntImpl'> at .input_source, no area_code found in dataclass\n"
+            "- unexpected key(s) \"city\" detected for type <class 'tests.scala_sealed_trait.StringImpl'> at .input_source"
         )
