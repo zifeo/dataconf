@@ -6,16 +6,17 @@ from typing import get_args
 from typing import get_origin
 from typing import Union
 
+from dataconf.exceptions import EnvListOrderException
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import TypeConfigException
 from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
 from pyhocon import ConfigFactory
-from pyhocon import HOCONConverter
 from pyhocon.config_tree import ConfigList
 from pyhocon.config_tree import ConfigTree
 import pyparsing
+
 
 NoneType = type(None)
 
@@ -181,42 +182,74 @@ def __generate(value: object, path):
     return value
 
 
-def load(file: str, clazz):
-    try:
-        conf = ConfigFactory.parse_file(file)
-        return __parse(conf, clazz, "")
-    except pyparsing.ParseSyntaxException as e:
-        raise MalformedConfigException(
-            f'parsing failure line {e.lineno} character {e.col}, got "{e.line}"'
-        )
+def __dict_list_parsing(prefix: str, obj):
+    ret = {}
 
+    def set_lens(p, focus, v):
 
-def loads(string: str, clazz):
-    try:
-        conf = ConfigFactory.parse_string(string)
-        return __parse(conf, clazz, "")
-    except pyparsing.ParseSyntaxException as e:
-        raise MalformedConfigException(
-            f'parsing failure line {e.lineno} character {e.col}, got "{e.line}"'
-        )
+        # value
+        if len(p) == 1:
+            # []x
+            if isinstance(focus, list):
+                if p[0] != len(focus):
+                    raise EnvListOrderException
+                focus.append(v)
+            # {}x
+            else:
+                focus[p[0]] = v
+            return
 
+        # dict
+        if p[1] == "":
 
-def dump(file: str, instance: object, out: str):
-    with open(file, "w") as f:
-        f.write(dumps(instance, out=out))
+            if p[0] not in focus:
+                # []{x}
+                if isinstance(focus, list):
+                    if p[0] != len(focus):
+                        raise EnvListOrderException
+                    focus.append({})
+                # {}{x}
+                else:
+                    focus[p[0]] = {}
 
+            return set_lens(p[2:], focus[p[0]], v)
 
-def dumps(instance: object, out: str):
-    conf = __generate(instance, "")
+        # list
+        if isinstance(p[1], int):
 
-    if out:
-        if out.lower() == "hocon":
-            return HOCONConverter.to_hocon(conf)
-        if out.lower() == "yaml":
-            return HOCONConverter.to_yaml(conf)
-        if out.lower() == "json":
-            return HOCONConverter.to_json(conf)
-        if out.lower() == "properties":
-            return HOCONConverter.to_properties(conf)
+            if p[0] not in focus:
+                # [][x]
+                if isinstance(focus, list):
+                    if p[1] != len(focus):
+                        raise EnvListOrderException
+                    focus.append([])
+                # {}[x]
+                else:
+                    focus[p[0]] = []
 
-    return conf
+            return set_lens(p[1:], focus[p[0]], v)
+
+        # compose path
+        return set_lens([f"{p[0]}_{p[1]}"] + p[2:], focus, v)
+
+    def int_or_string(v):
+        try:
+            return int(v)
+        except ValueError:
+            return v
+
+    if not prefix.endswith("_"):
+        prefix = f"{prefix}_"
+
+    for k, v in sorted(obj.items(), key=lambda x: x[0]):
+        if k.startswith(prefix):
+
+            path = [int_or_string(e) for e in k[len(prefix) :].lower().split("_")]
+            try:
+                value = ConfigFactory.parse_string(v)
+            except pyparsing.ParseSyntaxException:
+                value = v
+
+            set_lens(path, ret, value)
+
+    return ret

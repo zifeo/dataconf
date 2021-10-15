@@ -12,3 +12,7 @@ class MalformedConfigException(Exception):
 
 class UnexpectedKeysException(Exception):
     pass
+
+
+class EnvListOrderException(Exception):
+    pass
