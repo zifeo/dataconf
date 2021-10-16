@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dataconf"
-version = "dev"
+version = "0+dev"
 description = "Lightweight configuration with automatic dataclasses parsing (HOCON/JSON/YAML/PROPERTIES)"
 authors = []
 license = "Apache2"
