@@ -1,18 +1,15 @@
 repos:
 - repo: https://github.com/sqlalchemyorg/zimports/
-  rev: 0.3.0
+  rev: v0.4.1
   hooks:
   - id: zimports
 - repo: https://github.com/psf/black
-  rev: 21.5b0
+  rev: 21.9b0
   hooks:
   - id: black
 - repo: https://gitlab.com/pycqa/flake8
-  rev: 3.9.1
+  rev: 3.9.2
   hooks:
   - id: flake8
-- repo: https://github.com/zifeo/pre-commit
-  rev: v0.1.4
-  hooks:
-  - id: poetry-tag-checker
+
   

@@ -36,6 +36,7 @@ str_name = test
 str_name = ${?HOSTNAME}
 dash-to-underscore = true
 float_num = 2.2
+# this is a comment
 list_data = [
     a
     b
@@ -120,6 +121,11 @@ conf = dataconf.loads(str_conf, Base)
 ```python
 import dataconf
 
+conf = dataconf.string('{ name: Test }', Config)
+conf = dataconf.env('PREFIX_', Config)
+conf = dataconf.url('https://github.com/zifeo/dataconf/blob/master/.pre-commit-config.yaml', Config)
+conf = dataconf.file('confs/test.{hocon,json,yaml,properties}', Config)
+
 conf = dataconf.loads('confs/test.hocon', Config)
 conf = dataconf.loads('confs/test.json', Config)
 conf = dataconf.loads('confs/test.yaml', Config)
@@ -133,6 +139,53 @@ dataconf.dumps('confs/test.properties', out='properties')
 
 Follows same api as python JSON package (e.g. `load`, `loads`, `dump`, `dumps`). 
 For full HOCON capabilities see [here](https://github.com/chimpler/pyhocon/#example-of-hocon-file).
+
+## Env dict/list parsing
+
+```
+PREFIX_VAR=a
+PREFIX_VAR_NAME=b
+PREFIX_TEST__NAME=c
+PREFIX_LS_0=d
+PREFIX_LS_1=e
+PREFIX_LSLS_0_0=f
+PREFIX_LSOB_0__NAME=g
+PREFIX_NESTED="{ name: Test }"
+PREFIX_SUB="{ value: ${PREFIX_VAR} }"
+```
+
+is equivalent to
+
+```
+{
+    var = a
+    var_name = b
+    test {
+        name = c
+    }
+    ls = [
+        d
+        e
+    ]
+    lsls = [
+        [
+            f
+        ]
+    ]
+    lsob = [
+        {
+            name = g
+        }
+    ]
+    nested {
+        name: Test
+    }
+    sub {
+        # will have value "a" at parsing, useful for aliases
+        value = ${PREFIX_VAR}
+    }
+}
+```
 
 ## CI
 
