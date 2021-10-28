@@ -14,11 +14,11 @@ Requires at least Python 3.8.
 pip install dataconf
 poetry add dataconf
 
-# master
+# remote master
 pip install --upgrade git+https://github.com/zifeo/dataconf.git
 poetry add git+https://github.com/zifeo/dataconf.git
 
-# dev
+# local repo/dev
 poetry install
 pre-commit install
 ```
@@ -43,6 +43,7 @@ list_data = [
 ]
 nested {
     a = test
+    b : 2.5
 }
 nested_list = [
     {
@@ -51,11 +52,29 @@ nested_list = [
 ]
 duration = 2s
 union = 1
+people {
+    name = Thailand
+}
+zone {
+    area_code = 42
+}
 """
+
+class AbstractBaseClass:
+    pass
+    
+@dataclass
+class Person(AbstractBaseClass):
+    name: Text
+        
+@dataclass
+class Zone(AbstractBaseClass):
+    area_code: int
 
 @dataclass
 class Nested:
     a: Text
+    b: float
 
 @dataclass
 class Config:
@@ -69,54 +88,27 @@ class Config:
     union: Union[Text, int]
     default: Text = 'hello'
     default_factory: Dict[Text, Text] = field(default_factory=dict)
+    people: AbstractBaseClass
+    zone: AbstractBaseClass
 
-print(dataconf.loads(conf, Config))
-# Config(str_name='/users/root', dash_to_underscore=True, float_num=2.2, list_data=['a', 'b'], nested=Nested(a='test'), nested_list=[Nested(a='test1')], duration=relativedelta(seconds=+2), union=1, default='hello', default_factory={})
-
-# Replicating pureconfig Scala sealed trait case class behavior
-# https://pureconfig.github.io/docs/overriding-behavior-for-sealed-families.html
-class InputType:
-    """
-    Abstract base class
-    """
-    pass
-    
-    
-@dataclass(init=True, repr=True)
-class StringImpl(InputType):
-    name: Text
-    age: Text
-
-    def test_method(self):
-        print(f"{self.name} is {self.age} years old.")
-
-        
-@dataclass(init=True, repr=True)
-class IntImpl(InputType):
-    area_code: int
-    phone_num: Text
-
-    def test_method(self):
-        print(f"The area code for {self.phone_num} is {str(self.area_code)}")
-
-        
-@dataclass
-class Base:
-    location: Text
-    input_source: InputType
-
-str_conf = """
-{
-    location: Europe
-    input_source {
-        name: Thailand
-        age: "12"
-    }
-}
-"""
-
-conf = dataconf.loads(str_conf, Base)
+print(dataconf.string(conf, Config))
+# Config(
+#   str_name='/users/root',
+#   dash_to_underscore=True,
+#   float_num=2.2,
+#   list_data=['a', 'b'],
+#   nested=Nested(a='test'),
+#   nested_list=[Nested(a='test1', b=2.5)],
+#   duration=relativedelta(seconds=+2), 
+#   union=1, 
+#   default='hello', 
+#   default_factory={}, 
+#   people=Person(name='Thailand'), 
+#   zone=Zone(area_code=42)
+# )
 ```
+
+## API
 
 ```python
 import dataconf
@@ -126,23 +118,19 @@ conf = dataconf.env('PREFIX_', Config)
 conf = dataconf.url('https://github.com/zifeo/dataconf/blob/master/.pre-commit-config.yaml', Config)
 conf = dataconf.file('confs/test.{hocon,json,yaml,properties}', Config)
 
-conf = dataconf.loads('confs/test.hocon', Config)
-conf = dataconf.loads('confs/test.json', Config)
-conf = dataconf.loads('confs/test.yaml', Config)
-conf = dataconf.loads('confs/test.properties', Config)
-
-dataconf.dumps('confs/test.hocon', out='hocon')
-dataconf.dumps('confs/test.json', out='json')
-dataconf.dumps('confs/test.yaml', out='yaml')
-dataconf.dumps('confs/test.properties', out='properties')
+# Same api as Python json/yaml packages (e.g. `load`, `loads`, `dump`, `dumps`)
+conf = dataconf.load('confs/test.{hocon,json,yaml,properties}', Config)
+dataconf.dump('confs/test.hocon', conf, out='hocon')
+dataconf.dump('confs/test.json', conf, out='json')
+dataconf.dump('confs/test.yaml', conf, out='yaml')
+dataconf.dump('confs/test.properties', conf, out='properties')
 ```
 
-Follows same api as python JSON package (e.g. `load`, `loads`, `dump`, `dumps`). 
 For full HOCON capabilities see [here](https://github.com/chimpler/pyhocon/#example-of-hocon-file).
 
 ## Env dict/list parsing
 
-```
+```bash
 PREFIX_VAR=a
 PREFIX_VAR_NAME=b
 PREFIX_TEST__NAME=c
@@ -187,7 +175,7 @@ is equivalent to
 }
 ```
 
-## CI
+## CLI usage for validation
 
 ```shell
 dataconf -c confs/test.hocon -m tests.configs -d TestConf -o hocon
