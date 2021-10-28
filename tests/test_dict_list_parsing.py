@@ -3,7 +3,7 @@ from dataconf.utils import __dict_list_parsing as dict_list_parsing
 import pytest
 
 
-class TestEnvDict:
+class TestEnvDictParsing:
     def test_simple(self) -> None:
         env = {"P_TEST": "1"}
         assert dict_list_parsing("P", env) == dict(test="1")

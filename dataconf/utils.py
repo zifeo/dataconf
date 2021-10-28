@@ -128,7 +128,9 @@ def __parse(value: any, clazz, path):
         return __parse_type(value, clazz, path, isinstance(value, int))
 
     if clazz is float:
-        return __parse_type(value, clazz, path, isinstance(value, float))
+        return __parse_type(
+            value, clazz, path, isinstance(value, float) or isinstance(value, int)
+        )
 
     if clazz is str:
         return __parse_type(value, clazz, path, isinstance(value, str))
