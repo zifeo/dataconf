@@ -1,6 +1,7 @@
 from abc import ABCMeta
 from dataclasses import dataclass
 from dataclasses import field
+import os
 from os import environ
 from typing import Dict
 from typing import List
@@ -8,15 +9,32 @@ from typing import Optional
 from typing import Text
 from typing import Union
 
+from dataconf import load
 from dataconf import loads
 from dateutil.relativedelta import relativedelta
+
+PARENT_DIR = os.path.normpath(
+    os.path.dirname(os.path.realpath(__file__)) + os.sep + os.pardir
+)
 
 
 class TestParser:
     def test_readme(self) -> None:
+        class AbstractBaseClass:
+            pass
+
+        @dataclass
+        class Person(AbstractBaseClass):
+            name: Text
+
+        @dataclass
+        class Zone(AbstractBaseClass):
+            area_code: int
+
         @dataclass
         class Nested:
             a: Text
+            b: float
 
         @dataclass
         class Config:
@@ -28,40 +46,25 @@ class TestParser:
             nested_list: List[Nested]
             duration: relativedelta
             union: Union[Text, int]
+            people: AbstractBaseClass
+            zone: AbstractBaseClass
             default: Text = "hello"
             default_factory: Dict[Text, Text] = field(default_factory=dict)
 
-        conf = """
-        str_name = test
-        str_name = ${?HOME}
-        dash-to-underscore = true
-        float_num = 2.2
-        list_data = [
-            a
-            b
-        ]
-        nested {
-            a = test
-        }
-        nested_list = [
-            {
-                a = test1
-            }
-        ]
-        duration = 2s
-        union = 1
-        """
-
         # print(loads(conf, Config))
-        assert loads(conf, Config) == Config(
+        assert load(
+            os.path.join(PARENT_DIR, "confs", "readme.hocon"), Config
+        ) == Config(
             str_name=environ.get("HOME", "test"),
             dash_to_underscore=True,
             float_num=2.2,
             list_data=["a", "b"],
-            nested=Nested(a="test"),
-            nested_list=[Nested(a="test1")],
+            nested=Nested(a="test", b=1),
+            nested_list=[Nested(a="test1", b=2.5)],
             duration=relativedelta(seconds=+2),
             union=1,
+            people=Person(name="Thailand"),
+            zone=Zone(area_code=42),
             default="hello",
             default_factory={},
         )

@@ -26,6 +26,7 @@ pre-commit install
 ## Usage
 
 ```python
+import os
 from dataclasses import dataclass, field
 from typing import List, Dict, Text, Union
 from dateutil.relativedelta import relativedelta
@@ -33,7 +34,7 @@ import dataconf
 
 conf = """
 str_name = test
-str_name = ${?HOSTNAME}
+str_name = ${?HOME}
 dash-to-underscore = true
 float_num = 2.2
 # this is a comment
@@ -43,11 +44,12 @@ list_data = [
 ]
 nested {
     a = test
-    b : 2.5
+    b : 1
 }
 nested_list = [
     {
         a = test1
+        b : 2.5
     }
 ]
 duration = 2s
@@ -86,10 +88,10 @@ class Config:
     nested_list: List[Nested]
     duration: relativedelta
     union: Union[Text, int]
-    default: Text = 'hello'
-    default_factory: Dict[Text, Text] = field(default_factory=dict)
     people: AbstractBaseClass
     zone: AbstractBaseClass
+    default: Text = 'hello'
+    default_factory: Dict[Text, Text] = field(default_factory=dict)
 
 print(dataconf.string(conf, Config))
 # Config(
@@ -101,11 +103,26 @@ print(dataconf.string(conf, Config))
 #   nested_list=[Nested(a='test1', b=2.5)],
 #   duration=relativedelta(seconds=+2), 
 #   union=1, 
-#   default='hello', 
-#   default_factory={}, 
 #   people=Person(name='Thailand'), 
-#   zone=Zone(area_code=42)
+#   zone=Zone(area_code=42),
+#   default='hello', 
+#   default_factory={}
 # )
+
+@dataclass
+class Example:
+    hello: string
+    world: string
+
+os.environ['DC_WORLD'] = 'monde'
+
+print(
+    dataconf.multi
+    .url('https://raw.githubusercontent.com/zifeo/dataconf/master/confs/simple.hocon')
+    .env('DC')
+    .on(Example)
+)
+# Example(hello='bonjour',world='monde')
 ```
 
 ## API
@@ -115,7 +132,7 @@ import dataconf
 
 conf = dataconf.string('{ name: Test }', Config)
 conf = dataconf.env('PREFIX_', Config)
-conf = dataconf.url('https://github.com/zifeo/dataconf/blob/master/.pre-commit-config.yaml', Config)
+conf = dataconf.url('https://raw.githubusercontent.com/zifeo/dataconf/master/confs/test.hocon', Config)
 conf = dataconf.file('confs/test.{hocon,json,yaml,properties}', Config)
 
 # Same api as Python json/yaml packages (e.g. `load`, `loads`, `dump`, `dumps`)
@@ -175,7 +192,9 @@ is equivalent to
 }
 ```
 
-## CLI usage for validation
+## CLI usage
+
+Can be used for validation or converting between supported file formats (`-o`).
 
 ```shell
 dataconf -c confs/test.hocon -m tests.configs -d TestConf -o hocon

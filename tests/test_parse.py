@@ -15,14 +15,38 @@ from dataconf.exceptions import TypeConfigException
 from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
 import pytest
-from tests.scala_sealed_trait import InputType
-from tests.scala_sealed_trait import IntImpl
-from tests.scala_sealed_trait import StringImpl
-
 
 PARENT_DIR = os.path.normpath(
     os.path.dirname(os.path.realpath(__file__)) + os.sep + os.pardir
 )
+
+
+class InputType:
+    pass
+
+
+@dataclass(init=True, repr=True)
+class StringImpl(InputType):
+    name: Text
+    age: Text
+
+    def test_method(self):
+        return f"{self.name} is {self.age} years old."
+
+    def test_complex(self):
+        return int(self.age) * 3
+
+
+@dataclass(init=True, repr=True)
+class IntImpl(InputType):
+    area_code: int
+    phone_num: Text
+
+    def test_method(self):
+        return f"The area code for {self.phone_num} is {str(self.area_code)}"
+
+    def test_complex(self):
+        return self.area_code - 10
 
 
 class TestParser:
@@ -329,7 +353,7 @@ class TestParser:
             loads(str_conf, Base)
 
         assert e.value.args[0] == (
-            "expected type <class 'tests.scala_sealed_trait.InputType'> at .input_source, failed subclasses:\n"
-            "- expected type <class 'tests.scala_sealed_trait.IntImpl'> at .input_source, no area_code found in dataclass\n"
-            "- unexpected key(s) \"city\" detected for type <class 'tests.scala_sealed_trait.StringImpl'> at .input_source"
+            "expected type <class 'tests.test_parse.InputType'> at .input_source, failed subclasses:\n"
+            "- expected type <class 'tests.test_parse.IntImpl'> at .input_source, no area_code found in dataclass\n"
+            "- unexpected key(s) \"city\" detected for type <class 'tests.test_parse.StringImpl'> at .input_source"
         )

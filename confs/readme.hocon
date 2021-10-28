@@ -1,0 +1,27 @@
+str_name = test
+str_name = ${?HOME}
+dash-to-underscore = true
+float_num = 2.2
+# this is a comment
+list_data = [
+    a
+    b
+]
+nested {
+    a = test
+    b : 1
+}
+nested_list = [
+    {
+        a = test1
+        b : 2.5
+    }
+]
+duration = 2s
+union = 1
+people {
+    name = Thailand
+}
+zone {
+    area_code = 42
+}

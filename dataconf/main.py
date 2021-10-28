@@ -1,13 +1,15 @@
 import os
+from typing import List
 
 from dataconf import utils
 from dataconf.exceptions import MalformedConfigException
 from pyhocon import ConfigFactory
 from pyhocon import HOCONConverter
+from pyhocon.config_parser import ConfigTree
 import pyparsing
 
 
-def __parse_config_tree(conf, clazz):
+def parse(conf: ConfigTree, clazz):
     try:
         return utils.__parse(conf, clazz, "")
     except pyparsing.ParseSyntaxException as e:
@@ -16,24 +18,54 @@ def __parse_config_tree(conf, clazz):
         )
 
 
+def env_dict_list(prefix: str):
+    return utils.__dict_list_parsing(prefix, os.environ)
+
+
+class Multi:
+    def __init__(self, confs: List[ConfigTree]) -> None:
+        self.confs = confs
+
+    def env(self, prefix: str) -> "Multi":
+        conf = ConfigFactory.from_dict(env_dict_list(prefix))
+        return Multi(self.confs + [conf])
+
+    def string(self, s: str) -> "Multi":
+        conf = ConfigFactory.parse_string(s)
+        return Multi(self.confs + [conf])
+
+    def url(self, uri: str) -> "Multi":
+        conf = ConfigFactory.parse_URL(uri)
+        return Multi(self.confs + [conf])
+
+    def file(self, path: str) -> "Multi":
+        conf = ConfigFactory.parse_file(path)
+        return Multi(self.confs + [conf])
+
+    def on(self, clazz):
+        conf, *nxts = self.confs
+        for nxt in nxts:
+            conf = ConfigTree.merge_configs(conf, nxt)
+        return parse(conf, clazz)
+
+
+multi = Multi([])
+
+
 def env(prefix: str, clazz):
-    conf = ConfigFactory.from_dict(utils.__dict_list_parsing(prefix, os.environ))
-    return __parse_config_tree(conf, clazz)
+    return multi.env(prefix).on(clazz)
 
 
 def string(s: str, clazz):
-    conf = ConfigFactory.parse_string(s)
-    return __parse_config_tree(conf, clazz)
+    return multi.string(s).on(clazz)
 
 
 def url(uri: str, clazz):
-    conf = ConfigFactory.parse_URL(uri)
-    return __parse_config_tree(conf, clazz)
+    return multi.url(uri).on(clazz)
 
 
 def file(path: str, clazz):
-    conf = ConfigFactory.parse_file(path)
-    return __parse_config_tree(conf, clazz)
+    return multi.file(path).on(clazz)
 
 
 def load(path: str, clazz):
