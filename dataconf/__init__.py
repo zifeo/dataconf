@@ -5,6 +5,7 @@ from dataconf.main import file
 from dataconf.main import load
 from dataconf.main import loads
 from dataconf.main import multi
+from dataconf.main import parse
 from dataconf.main import string
 from dataconf.main import url
 from dataconf.version import __version__
@@ -19,5 +20,6 @@ __all__ = [
     "file",
     "string",
     "multi",
+    "parse",
     "__version__",
 ]
