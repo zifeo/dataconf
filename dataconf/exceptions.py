@@ -16,3 +16,7 @@ class UnexpectedKeysException(Exception):
 
 class EnvListOrderException(Exception):
     pass
+
+
+class EnvParseException(Exception):
+    pass

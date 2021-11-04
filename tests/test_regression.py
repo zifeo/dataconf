@@ -2,15 +2,13 @@ from abc import ABCMeta
 from dataclasses import dataclass
 from dataclasses import field
 import os
-from os import environ
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Text
 from typing import Union
 
-from dataconf import load
-from dataconf import loads
+import dataconf
 from dateutil.relativedelta import relativedelta
 
 PARENT_DIR = os.path.normpath(
@@ -52,10 +50,10 @@ class TestParser:
             default_factory: Dict[Text, Text] = field(default_factory=dict)
 
         # print(loads(conf, Config))
-        assert load(
+        assert dataconf.load(
             os.path.join(PARENT_DIR, "confs", "readme.hocon"), Config
         ) == Config(
-            str_name=environ.get("HOME", "test"),
+            str_name=os.environ.get("HOME", "test"),
             dash_to_underscore=True,
             float_num=2.2,
             list_data=["a", "b"],
@@ -99,7 +97,7 @@ class TestParser:
         }
         """
 
-        assert loads(conf, C) == C(
+        assert dataconf.loads(conf, C) == C(
             name="Countries Model Parquet Version 1.0.2",
             data=B(file_path="../data/countries.parquet", engine="auto"),
             training=False,
@@ -116,7 +114,7 @@ class TestParser:
         }
         """
 
-        assert loads(conf, C) == C(
+        assert dataconf.loads(conf, C) == C(
             name="Countries Model CSV Version 1.0.2",
             data=A(file_path="../data/countries_data.csv", sep=";"),
             training=True,
@@ -130,4 +128,13 @@ class TestParser:
         conf = """
         a-a = false
         """
-        assert loads(conf, A) == A(a_a=False)
+        assert dataconf.loads(conf, A) == A(a_a=False)
+
+    def test_url(self) -> None:
+        @dataclass
+        class A:
+            url: str
+
+        os.environ["p_url"] = "https://github.com/zifeo/dataconf"
+        assert dataconf.env("p", A) == A(url="https://github.com/zifeo/dataconf")
+        os.environ.pop("p_url")

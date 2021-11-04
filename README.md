@@ -155,8 +155,8 @@ PREFIX_LS_0=d
 PREFIX_LS_1=e
 PREFIX_LSLS_0_0=f
 PREFIX_LSOB_0__NAME=g
-PREFIX_NESTED="{ name: Test }"
-PREFIX_SUB="{ value: ${PREFIX_VAR} }"
+PREFIX_NESTED_="{ name: Test }"
+PREFIX_SUB_="{ value: ${PREFIX_VAR} }"
 ```
 
 is equivalent to
@@ -183,6 +183,7 @@ is equivalent to
         }
     ]
     nested {
+        # parse nested config by suffixing env var with `_`
         name: Test
     }
     sub {

@@ -1,4 +1,5 @@
 from dataconf.exceptions import EnvListOrderException
+from dataconf.exceptions import EnvParseException
 from dataconf.utils import __dict_list_parsing as dict_list_parsing
 import pytest
 
@@ -69,9 +70,17 @@ class TestEnvDictParsing:
 
     def test_nested(self) -> None:
         env = {
-            "P_A": "{ name: Test }",
-            "P_B": "d: 1\nc: 2",
+            "P_A_": "{ name: Test }",
+            "P_B_": "d: 1\nc: 2",
+            "P_C": "{ name: Test }",
         }
         assert dict_list_parsing("P", env) == dict(
-            a=dict(name="Test"), b=dict(d=1, c=2)
+            a=dict(name="Test"), b=dict(d=1, c=2), c="{ name: Test }"
         )
+
+    def test_bad_nested_config(self) -> None:
+        env = {
+            "P_A_0_": "::",
+        }
+        with pytest.raises(EnvParseException):
+            dict_list_parsing("P", env)

@@ -7,6 +7,7 @@ from typing import get_origin
 from typing import Union
 
 from dataconf.exceptions import EnvListOrderException
+from dataconf.exceptions import EnvParseException
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import TypeConfigException
@@ -246,12 +247,16 @@ def __dict_list_parsing(prefix: str, obj):
     for k, v in sorted(obj.items(), key=lambda x: x[0]):
         if k.startswith(prefix):
 
-            path = [int_or_string(e) for e in k[len(prefix) :].lower().split("_")]
-            try:
-                value = ConfigFactory.parse_string(v)
-            except pyparsing.ParseSyntaxException:
-                value = v
+            if k.endswith("_"):
+                try:
+                    v = ConfigFactory.parse_string(v)
+                except pyparsing.ParseBaseException as e:
+                    raise EnvParseException(
+                        f"env var {k} ends with `_` and expects a nested config, but got: {e}"
+                    )
+                k = k[:-1]
 
-            set_lens(path, ret, value)
+            path = [int_or_string(e) for e in k[len(prefix) :].lower().split("_")]
+            set_lens(path, ret, v)
 
     return ret
