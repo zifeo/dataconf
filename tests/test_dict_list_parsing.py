@@ -1,5 +1,5 @@
 from dataconf.exceptions import EnvListOrderException
-from dataconf.exceptions import EnvParseException
+from dataconf.exceptions import ParseException
 from dataconf.utils import __dict_list_parsing as dict_list_parsing
 import pytest
 
@@ -82,5 +82,5 @@ class TestEnvDictParsing:
         env = {
             "P_A_0_": "::",
         }
-        with pytest.raises(EnvParseException):
+        with pytest.raises(ParseException):
             dict_list_parsing("P", env)
