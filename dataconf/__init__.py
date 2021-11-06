@@ -1,6 +1,8 @@
+from dataconf.main import dict
 from dataconf.main import dump
 from dataconf.main import dumps
 from dataconf.main import env
+from dataconf.main import env_dict_list
 from dataconf.main import file
 from dataconf.main import load
 from dataconf.main import loads
@@ -17,9 +19,11 @@ __all__ = [
     "dumps",
     "env",
     "url",
+    "dict",
     "file",
     "string",
     "multi",
     "parse",
+    "env_dict_list",
     "__version__",
 ]

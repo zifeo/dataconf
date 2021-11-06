@@ -11,7 +11,9 @@ class TestMulti:
         class A:
             a: Text
 
-        assert multi.string("a = test").on(A) == A(a="test")
+        expected = A(a="test")
+        assert multi.string("a = test").on(A) == expected
+        assert multi.dict({"a": "test"}).on(A) == expected
 
     def test_chain(self) -> None:
         @dataclass

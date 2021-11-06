@@ -27,7 +27,10 @@ class Multi:
         self.confs = confs
 
     def env(self, prefix: str) -> "Multi":
-        conf = ConfigFactory.from_dict(env_dict_list(prefix))
+        return self.dict(env_dict_list(prefix))
+
+    def dict(self, obj: str) -> "Multi":
+        conf = ConfigFactory.from_dict(obj)
         return Multi(self.confs + [conf])
 
     def string(self, s: str) -> "Multi":
@@ -54,6 +57,10 @@ multi = Multi([])
 
 def env(prefix: str, clazz):
     return multi.env(prefix).on(clazz)
+
+
+def dict(obj: str, clazz):
+    return multi.dict(obj).on(clazz)
 
 
 def string(s: str, clazz):
