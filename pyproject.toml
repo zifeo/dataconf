@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "dataconf"
 version = "0+dev"
-description = "Lightweight configuration with automatic dataclasses parsing (HOCON/JSON/YAML/PROPERTIES)"
+description = "Simple dataclasses configuration management for Python with hocon/json/yaml/properties/env-vars support."
 authors = []
 license = "Apache2"
 readme = "README.md"
