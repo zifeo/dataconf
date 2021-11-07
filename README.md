@@ -3,7 +3,7 @@
 [![Actions Status](https://github.com/zifeo/dataconf/workflows/CI/badge.svg)](https://github.com/zifeo/dataconf/actions)
 [![PyPI version](https://badge.fury.io/py/dataconf.svg)](https://badge.fury.io/py/dataconf)
 
-Simple dataclasses configuration management for Python with hocon/json/yaml/properties/env-vars support, based on awesome and lightweight [pyhocon](https://github.com/chimpler/pyhocon) parsing library.
+Simple dataclasses configuration management for Python with hocon/json/yaml/properties/env-vars/dict support, based on awesome and lightweight [pyhocon](https://github.com/chimpler/pyhocon) parsing library.
 
 ## Getting started
 
@@ -136,11 +136,12 @@ import dataconf
 
 conf = dataconf.string('{ name: Test }', Config)
 conf = dataconf.env('PREFIX_', Config)
+conf = dataconf.dict({'name': 'Test'}, Config)
 conf = dataconf.url('https://raw.githubusercontent.com/zifeo/dataconf/master/confs/test.hocon', Config)
 conf = dataconf.file('confs/test.{hocon,json,yaml,properties}', Config)
 
 # Aggregation
-conf = dataconf.multi.string(...).env(...).url(...).file(...).on(Config)
+conf = dataconf.multi.string(...).env(...).url(...).file(...).dict(...).on(Config)
 
 # Same api as Python json/yaml packages (e.g. `load`, `loads`, `dump`, `dumps`)
 conf = dataconf.load('confs/test.{hocon,json,yaml,properties}', Config)

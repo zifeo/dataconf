@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "dataconf"
 version = "0+dev"
-description = "Simple dataclasses configuration management for Python with hocon/json/yaml/properties/env-vars support."
+description = "Simple dataclasses configuration management for Python with hocon/json/yaml/properties/env-vars/dict support."
 authors = []
 license = "Apache2"
 readme = "README.md"
