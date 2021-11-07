@@ -1,6 +1,7 @@
 from abc import ABCMeta
 from dataclasses import dataclass
 from dataclasses import field
+from datetime import datetime
 import os
 from typing import Dict
 from typing import List
@@ -39,6 +40,7 @@ class TestParser:
             str_name: Text
             dash_to_underscore: bool
             float_num: float
+            iso_datetime: datetime
             list_data: List[Text]
             nested: Nested
             nested_list: List[Nested]
@@ -56,6 +58,7 @@ class TestParser:
             str_name=os.environ.get("HOME", "test"),
             dash_to_underscore=True,
             float_num=2.2,
+            iso_datetime=datetime(2000, 1, 1, 20),
             list_data=["a", "b"],
             nested=Nested(a="test", b=1),
             nested_list=[Nested(a="test1", b=2.5)],

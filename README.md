@@ -30,6 +30,7 @@ import os
 from dataclasses import dataclass, field
 from typing import List, Dict, Text, Union
 from dateutil.relativedelta import relativedelta
+from datetime import datetime
 import dataconf
 
 conf = """
@@ -37,6 +38,7 @@ str_name = test
 str_name = ${?HOME}
 dash-to-underscore = true
 float_num = 2.2
+iso_datetime = "2000-01-01T20:00:00"
 # this is a comment
 list_data = [
     a
@@ -83,6 +85,7 @@ class Config:
     str_name: Text
     dash_to_underscore: bool
     float_num: float
+    iso_datetime: datetime
     list_data: List[Text]
     nested: Nested
     nested_list: List[Nested]
