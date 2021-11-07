@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from dataclasses import field
+from datetime import datetime
+from datetime import timezone
 import os
 from typing import Dict
 from typing import List
@@ -11,6 +13,7 @@ from dataconf import load
 from dataconf import loads
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
+from dataconf.exceptions import ParseException
 from dataconf.exceptions import TypeConfigException
 from dataconf.exceptions import UnexpectedKeysException
 from dateutil.relativedelta import relativedelta
@@ -153,6 +156,29 @@ class TestParser:
         b = test
         """
         assert loads(conf, A) == A(b="test")
+
+    def test_datetime(self) -> None:
+        @dataclass
+        class A:
+            b: datetime
+
+        conf = """
+        b = "1997-07-16T19:20:07+01:00"
+        """
+        assert loads(conf, A) == A(
+            b=datetime(1997, 7, 16, 18, 20, 7, tzinfo=timezone.utc)
+        )
+
+    def test_bad_datetime(self) -> None:
+        @dataclass
+        class A:
+            b: datetime
+
+        conf = """
+        b = "1997-07-16 19:20:0701:00"
+        """
+        with pytest.raises(ParseException):
+            assert loads(conf, A)
 
     def test_optional_with_default(self) -> None:
         @dataclass

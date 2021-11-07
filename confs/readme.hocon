@@ -2,6 +2,7 @@ str_name = test
 str_name = ${?HOME}
 dash-to-underscore = true
 float_num = 2.2
+iso_datetime = "2000-01-01T20:00:00"
 # this is a comment
 list_data = [
     a

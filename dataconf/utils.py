@@ -2,16 +2,18 @@ from dataclasses import _MISSING_TYPE
 from dataclasses import asdict
 from dataclasses import fields
 from dataclasses import is_dataclass
+from datetime import datetime
 from typing import get_args
 from typing import get_origin
 from typing import Union
 
 from dataconf.exceptions import EnvListOrderException
-from dataconf.exceptions import EnvParseException
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
+from dataconf.exceptions import ParseException
 from dataconf.exceptions import TypeConfigException
 from dataconf.exceptions import UnexpectedKeysException
+from dateutil.parser import isoparse
 from dateutil.relativedelta import relativedelta
 from pyhocon import ConfigFactory
 from pyhocon.config_tree import ConfigList
@@ -136,6 +138,15 @@ def __parse(value: any, clazz, path):
     if clazz is str:
         return __parse_type(value, clazz, path, isinstance(value, str))
 
+    if clazz is datetime:
+        dt = __parse_type(value, clazz, path, isinstance(value, str))
+        try:
+            return isoparse(dt)
+        except ValueError as e:
+            raise ParseException(
+                f"expected type {clazz} at {path}, cannot parse due to {e}"
+            )
+
     if clazz is relativedelta:
         return __parse_type(value, clazz, path, isinstance(value, relativedelta))
 
@@ -251,8 +262,8 @@ def __dict_list_parsing(prefix: str, obj):
                 try:
                     v = ConfigFactory.parse_string(v)
                 except pyparsing.ParseBaseException as e:
-                    raise EnvParseException(
-                        f"env var {k} ends with `_` and expects a nested config, but got: {e}"
+                    raise ParseException(
+                        f"env var {k} ends with `_` and expects a nested config, got: {e}"
                     )
                 k = k[:-1]
 
