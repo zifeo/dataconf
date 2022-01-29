@@ -141,3 +141,21 @@ class TestParser:
         os.environ["p_url"] = "https://github.com/zifeo/dataconf"
         assert dataconf.env("p", A) == A(url="https://github.com/zifeo/dataconf")
         os.environ.pop("p_url")
+
+    def test_env_var_cast_35(self) -> None:
+        @dataclass
+        class Example:
+            hello: Optional[str]
+            world: str
+            float_num: float
+            int_num: int
+            bool_var: bool
+
+        os.environ["DC_WORLD"] = "monde"
+        os.environ["DC_FLOAT_NUM"] = "1.3"
+        os.environ["DC_INT_NUM"] = "2"
+        os.environ["DC_BOOL_VAR"] = "true"
+
+        assert dataconf.env("DC", Example) == Example(
+            hello=None, world="monde", float_num=1.3, int_num=2, bool_var=True
+        )
