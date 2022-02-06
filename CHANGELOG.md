@@ -13,15 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.3.0]
+
+### Added
+
+- strict mode is now optional #36
+
+### Fixed
+
+- `.env` source disable strict mode #36
+
 ## [1.2.0]
 
 ### Added
 
 - dict source support
-
-### Changed
-
-### Fixed
 
 ## [1.1.0]
 
@@ -29,15 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - datetime parsing
 
-### Changed
-
-### Fixed
-
 ## [1.0.1]
-
-### Added
-
-### Changed
 
 ### Fixed
 
