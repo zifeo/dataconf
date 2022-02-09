@@ -1,10 +1,10 @@
 repos:
 - repo: https://github.com/sqlalchemyorg/zimports/
-  rev: v0.4.1
+  rev: v0.4.3
   hooks:
   - id: zimports
 - repo: https://github.com/psf/black
-  rev: 21.9b0
+  rev: 22.1.0
   hooks:
   - id: black
 - repo: https://gitlab.com/pycqa/flake8

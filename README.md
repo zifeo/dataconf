@@ -201,6 +201,8 @@ is equivalent to
 }
 ```
 
+Note that when using `.env` source, the strict mode is disabled and value might be casted.
+
 ## CLI usage
 
 Can be used for validation or converting between supported file formats (`-o`).

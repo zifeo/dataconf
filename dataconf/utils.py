@@ -39,7 +39,7 @@ def is_optional(type):
     return get_origin(type) is Union and NoneType in get_args(type)
 
 
-def __parse(value: any, clazz, path):
+def __parse(value: any, clazz, path, strict):
 
     if is_dataclass(clazz):
 
@@ -65,7 +65,7 @@ def __parse(value: any, clazz, path):
                     val = f.default
 
             if not isinstance(val, _MISSING_TYPE):
-                fs[f.name] = __parse(val, f.type, f"{path}.{f.name}")
+                fs[f.name] = __parse(val, f.type, f"{path}.{f.name}", strict)
 
             elif is_optional(f.type):
                 # Optional not found
@@ -91,7 +91,7 @@ def __parse(value: any, clazz, path):
         if len(args) != 1:
             raise MissingTypeException("expected list with type information: List[?]")
         if value is not None:
-            return [__parse(v, args[0], f"{path}[]") for v in value]
+            return [__parse(v, args[0], f"{path}[]", strict) for v in value]
         return None
 
     if origin is dict:
@@ -100,13 +100,15 @@ def __parse(value: any, clazz, path):
                 "expected dict with type information: Dict[?, ?]"
             )
         if value is not None:
-            return {k: __parse(v, args[1], f"{path}.{k}") for k, v in value.items()}
+            return {
+                k: __parse(v, args[1], f"{path}.{k}", strict) for k, v in value.items()
+            }
         return None
 
     if is_optional(clazz):
         left, right = args
         try:
-            return __parse(value, left if right is NoneType else right, path)
+            return __parse(value, left if right is NoneType else right, path, strict)
         except TypeConfigException:
             # cannot parse Optional
             return None
@@ -115,22 +117,37 @@ def __parse(value: any, clazz, path):
         left, right = args
 
         try:
-            return __parse(value, left, path)
+            return __parse(value, left, path, strict)
         except TypeConfigException as left_failure:
             try:
-                return __parse(value, right, path)
+                return __parse(value, right, path, strict)
             except TypeConfigException as right_failure:
                 raise TypeConfigException(
                     f"expected type {clazz} at {path}, failed both:\n- {left_failure}\n- {right_failure}"
                 )
 
     if clazz is bool:
+        if not strict:
+            try:
+                value = bool(value)
+            except ValueError:
+                pass
         return __parse_type(value, clazz, path, isinstance(value, bool))
 
     if clazz is int:
+        if not strict:
+            try:
+                value = int(value)
+            except ValueError:
+                pass
         return __parse_type(value, clazz, path, isinstance(value, int))
 
     if clazz is float:
+        if not strict:
+            try:
+                value = float(value)
+            except ValueError:
+                pass
         return __parse_type(
             value, clazz, path, isinstance(value, float) or isinstance(value, int)
         )
@@ -157,7 +174,7 @@ def __parse(value: any, clazz, path):
     for child_clazz in sorted(clazz.__subclasses__(), key=lambda c: c.__name__):
         if is_dataclass(child_clazz):
             try:
-                return __parse(value, child_clazz, path)
+                return __parse(value, child_clazz, path, strict)
             except (
                 TypeConfigException,
                 MalformedConfigException,
