@@ -14,7 +14,8 @@ jobs:
         python-version: ["3.8", "3.9", "3.10"]
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Check out
+      uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -52,7 +53,8 @@ jobs:
     if: needs.release-check.outputs.release != ''
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Check out
+        uses: actions/checkout@v2
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -76,6 +78,7 @@ jobs:
         with:
           name: Release v${{ needs.release-check.outputs.release }}
           tag_name: v${{ needs.release-check.outputs.release }}
+          #prerelease: "true"
           body: |
             See [changelog](https://github.com/${{ env.GITHUB_REPOSITORY }}/blob/v${{ needs.release-check.outputs.release }}/CHANGELOG.md).
         env:

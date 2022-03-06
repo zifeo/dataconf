@@ -1,42 +1,46 @@
-# Changelog
+## Unreleased
 
-All notable changes to this project will be documented in this file.
+### Fix
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+- tag format
+- lockfile conflict
 
-## [Unreleased]
+### Refactor
 
-### Added
+- clearer workflow
 
-### Changed
+### Feat
 
-### Fixed
+- add commitizen and redesign deployment
 
-## [1.3.0]
+## v1.3.0 (2022-02-09)
 
-### Added
+## v1.2.0 (2021-11-07)
 
-- strict mode is now optional #36
+## v1.1.0 (2021-11-07)
 
-### Fixed
+## v1.0.3 (2021-11-04)
 
-- `.env` source disable strict mode #36
+## v1.0.2 (2021-10-29)
 
-## [1.2.0]
+## v1.0.1 (2021-10-28)
 
-### Added
+## v1.0.0 (2021-10-28)
 
-- dict source support
+## v0.4.0 (2021-10-28)
 
-## [1.1.0]
+## v0.3.0 (2021-10-17)
 
-### Added
+## v0.2.1 (2021-10-13)
 
-- datetime parsing
+## v0.2.0 (2021-10-08)
 
-## [1.0.1]
+## v0.1.6 (2021-09-20)
 
-### Fixed
+## v0.1.5 (2021-08-23)
 
-- parse nested config by suffixing env var with `_` to avoid collision with string (e.g. url)
+## v0.1.3 (2021-05-06)
+
+## v0.1.2 (2021-01-31)
+
+## v0.1.1 (2021-01-31)
