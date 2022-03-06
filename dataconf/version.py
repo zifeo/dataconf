@@ -1,3 +1,1 @@
-import importlib.metadata
-
-__version__ = importlib.metadata.version("dataconf").lstrip("v")
+__version__ = "1.3.0"
