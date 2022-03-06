@@ -43,8 +43,8 @@ jobs:
         run: |
           apt install -y jq
           VERSION=$(poetry version -s)
-          EXISTS=$(curl -s https://pypi.org/pypi/dataconf/json | jq ".releases | keys | any(. == \"$VERSION\")")
-          echo "::set-output release=$([[ "$EXISTS" == 'false' ]] && $VERSION || echo '')"
+          ALREADY_RELEASED=$(curl -s https://pypi.org/pypi/dataconf/json | jq ".releases | keys | any(. == \"$VERSION\")")
+          echo "::set-output release=$([[ "$ALREADY_RELEASED" == 'true' ]] && echo '' || $VERSION)"
 
   publish:
     needs: release-check
