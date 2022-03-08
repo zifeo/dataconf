@@ -1,18 +1,5 @@
 ## Unreleased
 
-### Fix
-
-- tag format
-- lockfile conflict
-
-### Refactor
-
-- clearer workflow
-
-### Changed
-
-- add commitizen and redesign deployment
-
 ## v1.3.0 (2022-02-09)
 
 ## v1.2.0 (2021-11-07)
