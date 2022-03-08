@@ -1,0 +1,36 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: "Release type"
+        required: false
+        type: string
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Create bump and changelog
+        id: commitizen
+        uses: commitizen-tools/commitizen-action@master
+        with:
+          prerelease: ${{ github.event.inputs.prerelease }}
+          git_name: ${{ github.actor }}
+          git_email: ${{ github.actor }}@users.noreply.github.com
+          push: "false"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          branch: release-${{ steps.commitizen.outputs.version }}
+          delete-branch: true
+          title: Release ${{ steps.commitizen.outputs.version }}
