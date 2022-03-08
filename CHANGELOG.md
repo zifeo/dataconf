@@ -9,7 +9,7 @@
 
 - clearer workflow
 
-### Feat
+### Changed
 
 - add commitizen and redesign deployment
 

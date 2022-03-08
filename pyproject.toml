@@ -24,7 +24,7 @@ pyhocon = "^0.3.54"
 python-dateutil = "^2.8.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
+pytest = "^7.0.1"
 pre-commit = "^2.3.0"
 commitizen = "^2.21.2"
 
