@@ -269,12 +269,11 @@ def __dict_list_parsing(prefix: str, obj):
         except ValueError:
             return v
 
-    if not prefix.endswith("_"):
+    if not prefix.endswith("_") and prefix != "":
         prefix = f"{prefix}_"
 
     for k, v in sorted(obj.items(), key=lambda x: x[0]):
         if k.startswith(prefix):
-
             if k.endswith("_"):
                 try:
                     v = ConfigFactory.parse_string(v)

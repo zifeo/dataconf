@@ -10,6 +10,10 @@ class TestEnvDictParsing:
         assert dict_list_parsing("P", env) == dict(test="1")
         assert dict_list_parsing("P_", env) == dict(test="1")
 
+    def test_no_prefix(self) -> None:
+        env = {"TEST": "1"}
+        assert dict_list_parsing("", env) == dict(test="1")
+
     def test_double(self) -> None:
         env = {
             "P_TEST": "1",

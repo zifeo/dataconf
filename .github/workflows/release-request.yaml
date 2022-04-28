@@ -1,0 +1,15 @@
+name: Create release request
+
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: "Prerelease type (empty == normal)"
+        required: false
+        type: string
+
+jobs:
+  release-request:
+    uses: zifeo/workflows/.github/workflows/release-request.yml@main
+    with:
+      prerelease: ${{ github.event.inputs.prerelease }}
