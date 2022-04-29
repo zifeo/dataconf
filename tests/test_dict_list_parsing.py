@@ -65,6 +65,17 @@ class TestEnvDictParsing:
         with pytest.raises(EnvListOrderException):
             dict_list_parsing("P", env)
 
+    def test_number(self) -> None:
+        env = {
+            "A": "1",
+            "A_80": "2",
+            "A_80_B": "3",
+            "A_80_B_1": "4",
+        }
+        assert dict_list_parsing("", env) == dict(
+            a="1", a_80="2", a_80_b="3", a_80_b_1="4"
+        )
+
     def test_obj_composed(self) -> None:
         env = {
             "P_A_A__B": "1",
