@@ -245,8 +245,8 @@ def __dict_list_parsing(prefix: str, obj):
 
             return set_lens(p[2:], focus[p[0]], v)
 
-        # list
-        if isinstance(p[1], int):
+        # list (only if the focus/value is already a list or if it starts with element 0)
+        if isinstance(p[1], int) and (p[1] == 0 or isinstance(focus[p[0]], list)):
 
             if p[0] not in focus:
                 # [][x]
