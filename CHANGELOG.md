@@ -1,3 +1,15 @@
+## v1.5.0 (2022-04-29)
+
+### Feat
+
+- add ignore_unexpected option to ignore unwanted keys
+- deps update and support for prefixless env parsing
+- commitizen
+
+### Fix
+
+- list must start with 0
+
 ## v1.4.0 (2022-03-08)
 
 ### Feat

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dataconf"
-version = "1.4.0"
+version = "1.5.0"
 description = "Simple dataclasses configuration management for Python with hocon/json/yaml/properties/env-vars/dict support."
 authors = []
 license = "Apache2"
@@ -30,7 +30,7 @@ commitizen = "^2.21.2"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "1.4.0"
+version = "1.5.0"
 tag_format = "v$major.$minor.$patch$prerelease"
 version_files = [
     "pyproject.toml:version",
