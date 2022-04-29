@@ -9,9 +9,11 @@ from pyhocon.config_parser import ConfigTree
 import pyparsing
 
 
-def parse(conf: ConfigTree, clazz, strict=True):
+def parse(
+    conf: ConfigTree, clazz, strict: bool = True, ignore_unexpected: bool = False
+):
     try:
-        return utils.__parse(conf, clazz, "", strict)
+        return utils.__parse(conf, clazz, "", strict, ignore_unexpected)
     except pyparsing.ParseSyntaxException as e:
         raise MalformedConfigException(
             f'parsing failure line {e.lineno} character {e.col}, got "{e.line}"'
@@ -23,66 +25,67 @@ def env_dict_list(prefix: str):
 
 
 class Multi:
-    def __init__(self, confs: List[ConfigTree], strict: bool = True) -> None:
+    def __init__(self, confs: List[ConfigTree], strict: bool = True, **kwargs) -> None:
         self.confs = confs
         self.strict = strict
+        self.kwargs = kwargs
 
-    def env(self, prefix: str) -> "Multi":
+    def env(self, prefix: str, **kwargs) -> "Multi":
         self.strict = False
-        return self.dict(env_dict_list(prefix))
+        return self.dict(env_dict_list(prefix), **kwargs)
 
-    def dict(self, obj: str) -> "Multi":
+    def dict(self, obj: str, **kwargs) -> "Multi":
         conf = ConfigFactory.from_dict(obj)
-        return Multi(self.confs + [conf], self.strict)
+        return Multi(self.confs + [conf], self.strict, **kwargs)
 
-    def string(self, s: str) -> "Multi":
+    def string(self, s: str, **kwargs) -> "Multi":
         conf = ConfigFactory.parse_string(s)
-        return Multi(self.confs + [conf], self.strict)
+        return Multi(self.confs + [conf], self.strict, **kwargs)
 
-    def url(self, uri: str) -> "Multi":
+    def url(self, uri: str, **kwargs) -> "Multi":
         conf = ConfigFactory.parse_URL(uri)
-        return Multi(self.confs + [conf], self.strict)
+        return Multi(self.confs + [conf], self.strict, **kwargs)
 
-    def file(self, path: str) -> "Multi":
+    def file(self, path: str, **kwargs) -> "Multi":
         conf = ConfigFactory.parse_file(path)
-        return Multi(self.confs + [conf], self.strict)
+        return Multi(self.confs + [conf], self.strict, **kwargs)
 
     def on(self, clazz):
         conf, *nxts = self.confs
         for nxt in nxts:
             conf = ConfigTree.merge_configs(conf, nxt)
-        return parse(conf, clazz, self.strict)
+        return parse(conf, clazz, self.strict, **self.kwargs)
 
 
 multi = Multi([])
 
 
-def env(prefix: str, clazz):
-    return multi.env(prefix).on(clazz)
+def env(prefix: str, clazz, **kwargs):
+    return multi.env(prefix, **kwargs).on(clazz)
 
 
-def dict(obj: str, clazz):
-    return multi.dict(obj).on(clazz)
+def dict(obj: str, clazz, **kwargs):
+    return multi.dict(obj, **kwargs).on(clazz)
 
 
-def string(s: str, clazz):
-    return multi.string(s).on(clazz)
+def string(s: str, clazz, **kwargs):
+    return multi.string(s, **kwargs).on(clazz)
 
 
-def url(uri: str, clazz):
-    return multi.url(uri).on(clazz)
+def url(uri: str, clazz, **kwargs):
+    return multi.url(uri, **kwargs).on(clazz)
 
 
-def file(path: str, clazz):
-    return multi.file(path).on(clazz)
+def file(path: str, clazz, **kwargs):
+    return multi.file(path, **kwargs).on(clazz)
 
 
-def load(path: str, clazz):
-    return file(path, clazz)
+def load(path: str, clazz, **kwargs):
+    return file(path, clazz, **kwargs)
 
 
-def loads(s: str, clazz):
-    return string(s, clazz)
+def loads(s: str, clazz, **kwargs):
+    return string(s, clazz, **kwargs)
 
 
 def dump(file: str, instance: object, out: str):

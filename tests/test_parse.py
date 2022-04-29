@@ -276,6 +276,22 @@ class TestParser:
         with pytest.raises(UnexpectedKeysException):
             loads(conf, Dict[Text, Clazz])
 
+    def test_ignore_unexpected(self) -> None:
+
+        conf = """
+        a = "hello"
+        b = "world"
+        """
+
+        @dataclass
+        class A:
+            a: Text
+
+        with pytest.raises(UnexpectedKeysException):
+            loads(conf, A)
+
+        assert loads(conf, A, ignore_unexpected=True) == A(a="hello")
+
     def test_complex_hocon(self) -> None:
         @dataclass
         class Conn:
