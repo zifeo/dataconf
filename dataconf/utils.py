@@ -5,6 +5,7 @@ from dataclasses import is_dataclass
 from datetime import datetime
 from typing import get_args
 from typing import get_origin
+from typing import get_type_hints
 from typing import Union
 
 from dataconf.exceptions import EnvListOrderException
@@ -39,7 +40,7 @@ def is_optional(type):
     return get_origin(type) is Union and NoneType in get_args(type)
 
 
-def __parse(value: any, clazz, path, strict, ignore_unexpected):
+def __parse(value: any, clazz, path, strict, ignore_unexpected, globalns, localns):
 
     if is_dataclass(clazz):
 
@@ -51,6 +52,7 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
         fs = {}
         renamings = dict()
 
+        type_hints = get_type_hints(clazz, globalns, localns)
         for f in fields(clazz):
 
             if f.name in value:
@@ -66,10 +68,16 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
 
             if not isinstance(val, _MISSING_TYPE):
                 fs[f.name] = __parse(
-                    val, f.type, f"{path}.{f.name}", strict, ignore_unexpected
+                    val,
+                    type_hints[f.name],
+                    f"{path}.{f.name}",
+                    strict,
+                    ignore_unexpected,
+                    globalns,
+                    localns,
                 )
 
-            elif is_optional(f.type):
+            elif is_optional(type_hints[f.name]):
                 # Optional not found
                 fs[f.name] = None
 
@@ -94,7 +102,15 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
             raise MissingTypeException("expected list with type information: List[?]")
         if value is not None:
             return [
-                __parse(v, args[0], f"{path}[]", strict, ignore_unexpected)
+                __parse(
+                    v,
+                    args[0],
+                    f"{path}[]",
+                    strict,
+                    ignore_unexpected,
+                    globalns,
+                    localns,
+                )
                 for v in value
             ]
         return None
@@ -106,7 +122,15 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
             )
         if value is not None:
             return {
-                k: __parse(v, args[1], f"{path}.{k}", strict, ignore_unexpected)
+                k: __parse(
+                    v,
+                    args[1],
+                    f"{path}.{k}",
+                    strict,
+                    ignore_unexpected,
+                    globalns,
+                    localns,
+                )
                 for k, v in value.items()
             }
         return None
@@ -120,6 +144,8 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
                 path,
                 strict,
                 ignore_unexpected,
+                globalns,
+                localns,
             )
         except TypeConfigException:
             # cannot parse Optional
@@ -129,10 +155,14 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
         left, right = args
 
         try:
-            return __parse(value, left, path, strict, ignore_unexpected)
+            return __parse(
+                value, left, path, strict, ignore_unexpected, globalns, localns
+            )
         except TypeConfigException as left_failure:
             try:
-                return __parse(value, right, path, strict, ignore_unexpected)
+                return __parse(
+                    value, right, path, strict, ignore_unexpected, globalns, localns
+                )
             except TypeConfigException as right_failure:
                 raise TypeConfigException(
                     f"expected type {clazz} at {path}, failed both:\n- {left_failure}\n- {right_failure}"
@@ -186,7 +216,15 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
     for child_clazz in sorted(clazz.__subclasses__(), key=lambda c: c.__name__):
         if is_dataclass(child_clazz):
             try:
-                return __parse(value, child_clazz, path, strict, ignore_unexpected)
+                return __parse(
+                    value,
+                    child_clazz,
+                    path,
+                    strict,
+                    ignore_unexpected,
+                    globalns,
+                    localns,
+                )
             except (
                 TypeConfigException,
                 MalformedConfigException,
