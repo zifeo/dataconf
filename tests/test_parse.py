@@ -8,6 +8,7 @@ from typing import List
 from typing import Optional
 from typing import Text
 from typing import Union
+from enum import Enum, IntEnum
 
 from dataconf import load
 from dataconf import loads
@@ -156,6 +157,46 @@ class TestParser:
         b = test
         """
         assert loads(conf, A) == A(b="test")
+
+    def test_enum(self) -> None:
+        class Color(Enum):
+            RED = 1
+            GREEN = 2
+            BLUE = 3
+
+        @dataclass
+        class A:
+            b: Color
+
+        conf_name = """
+        b = RED
+        """
+        assert loads(conf_name, A) == A(b=Color.RED)
+
+        conf_value = """
+        b = 2
+        """
+        assert loads(conf_value, A) == A(b=Color.GREEN)
+
+    def test_int_num(self) -> None:
+        class IntColor(IntEnum):
+            RED = 1
+            GREEN = 2
+            BLUE = 3
+
+        @dataclass
+        class A:
+            b: IntColor
+
+        conf_name = """
+        b = RED
+        """
+        assert loads(conf_name, A) == A(b=IntColor.RED)
+
+        conf_value = """
+        b = 2
+        """
+        assert loads(conf_value, A) == A(b=IntColor.GREEN)
 
     def test_datetime(self) -> None:
         @dataclass

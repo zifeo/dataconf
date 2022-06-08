@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import get_args
 from typing import get_origin
 from typing import Union
+from enum import Enum, IntEnum
 
 from dataconf.exceptions import EnvListOrderException
 from dataconf.exceptions import MalformedConfigException
@@ -167,6 +168,14 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
     if clazz is str:
         return __parse_type(value, clazz, path, isinstance(value, str))
 
+    if issubclass(clazz, Enum) or issubclass(clazz, IntEnum):
+        if isinstance(value, int):
+            return clazz.__call__(value)
+        elif isinstance(value, str):
+            return clazz.__getattr__(value)
+        else:
+            raise TypeConfigException(f"expected str or int at {path}, got {type(value)}")
+    
     if clazz is datetime:
         dt = __parse_type(value, clazz, path, isinstance(value, str))
         try:
