@@ -3,6 +3,8 @@ from dataclasses import asdict
 from dataclasses import fields
 from dataclasses import is_dataclass
 from datetime import datetime
+from enum import Enum
+from enum import IntEnum
 from typing import get_args
 from typing import get_origin
 from typing import Union
@@ -166,6 +168,16 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
 
     if clazz is str:
         return __parse_type(value, clazz, path, isinstance(value, str))
+
+    if issubclass(clazz, Enum) or issubclass(clazz, IntEnum):
+        if isinstance(value, int):
+            return clazz.__call__(value)
+        elif isinstance(value, str):
+            return clazz.__getattr__(value)
+        else:
+            raise TypeConfigException(
+                f"expected str or int at {path}, got {type(value)}"
+            )
 
     if clazz is datetime:
         dt = __parse_type(value, clazz, path, isinstance(value, str))
