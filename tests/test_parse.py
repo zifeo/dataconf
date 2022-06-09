@@ -2,13 +2,14 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
 from datetime import timezone
+from enum import Enum
+from enum import IntEnum
 import os
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Text
 from typing import Union
-from enum import Enum, IntEnum
 
 from dataconf import load
 from dataconf import loads
