@@ -5,6 +5,7 @@ from datetime import timezone
 from enum import Enum
 from enum import IntEnum
 import os
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -491,3 +492,26 @@ class TestParser:
         """
         conf = loads(unambig_str_conf, Base)
         assert isinstance(conf.foo, AmbigImplTwo)
+
+    def test_any(self) -> None:
+        @dataclass
+        class Base:
+            foo: Any
+
+        list_conf = """
+            {
+                foo: [1, 2]
+            }
+        """
+
+        conf = loads(list_conf, Base)
+        assert conf.foo == [1, 2]
+
+        dict_conf = """
+            {
+                foo: {a:1}
+            }
+        """
+
+        conf = loads(dict_conf, Base)
+        assert conf.foo == {"a": 1}
