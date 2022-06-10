@@ -8,6 +8,7 @@ from enum import IntEnum
 from typing import get_args
 from typing import get_origin
 from typing import Union
+from inspect import isclass
 
 from dataconf.exceptions import AmbiguousSubclassException
 from dataconf.exceptions import EnvListOrderException
@@ -170,7 +171,7 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
     if clazz is str:
         return __parse_type(value, clazz, path, isinstance(value, str))
 
-    if issubclass(clazz, Enum) or issubclass(clazz, IntEnum):
+    if isclass(clazz) and (issubclass(clazz, Enum) or issubclass(clazz, IntEnum)):
         if isinstance(value, int):
             return clazz.__call__(value)
         elif isinstance(value, str):
