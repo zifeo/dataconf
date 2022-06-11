@@ -7,9 +7,6 @@ on:
       - edited
       - synchronize
 
-permissions:
-  pull-requests: read
-
 jobs:
   check:
     name: Validate PR title
