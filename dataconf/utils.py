@@ -5,10 +5,13 @@ from dataclasses import is_dataclass
 from datetime import datetime
 from enum import Enum
 from enum import IntEnum
+from inspect import isclass
+from typing import Any
 from typing import get_args
 from typing import get_origin
 from typing import Union
 
+from dataconf.exceptions import AmbiguousSubclassException
 from dataconf.exceptions import EnvListOrderException
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
@@ -169,7 +172,11 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
     if clazz is str:
         return __parse_type(value, clazz, path, isinstance(value, str))
 
-    if issubclass(clazz, Enum) or issubclass(clazz, IntEnum):
+    if clazz is Any:
+        # At this point, abandon type enforcement
+        return value
+
+    if isclass(clazz) and (issubclass(clazz, Enum) or issubclass(clazz, IntEnum)):
         if isinstance(value, int):
             return clazz.__call__(value)
         elif isinstance(value, str):
@@ -195,16 +202,35 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
         return __parse_type(value, clazz, path, isinstance(value, ConfigTree))
 
     child_failures = []
+    child_successes = []
+    subtype = value.pop("_type", default=None)
     for child_clazz in sorted(clazz.__subclasses__(), key=lambda c: c.__name__):
-        if is_dataclass(child_clazz):
+        if is_dataclass(child_clazz) and (
+            subtype is None
+            or f"{child_clazz.__module__}.{child_clazz.__name__}".endswith(subtype)
+        ):
             try:
-                return __parse(value, child_clazz, path, strict, ignore_unexpected)
+                child_successes.append(
+                    (
+                        child_clazz,
+                        __parse(value, child_clazz, path, strict, ignore_unexpected),
+                    )
+                )
             except (
                 TypeConfigException,
                 MalformedConfigException,
                 UnexpectedKeysException,
+                AmbiguousSubclassException,
             ) as e:
                 child_failures.append(e)
+
+    if len(child_successes) == 1:
+        return child_successes[0][1]
+    elif len(child_successes) > 1:
+        matching_classes = "\n- ".join(map(lambda x: x[0].__name__, child_successes))
+        raise AmbiguousSubclassException(
+            f"""multiple subtypes of {clazz} matched at {path}, use '_type' to disambiguate:\n- {matching_classes}"""
+        )
 
     # no need to check length; false if empty
     if child_failures:

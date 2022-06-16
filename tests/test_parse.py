@@ -5,6 +5,7 @@ from datetime import timezone
 from enum import Enum
 from enum import IntEnum
 import os
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -13,6 +14,7 @@ from typing import Union
 
 from dataconf import load
 from dataconf import loads
+from dataconf.exceptions import AmbiguousSubclassException
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import ParseException
@@ -52,6 +54,20 @@ class IntImpl(InputType):
 
     def test_complex(self):
         return self.area_code - 10
+
+
+class AmbigImplBase:
+    pass
+
+
+@dataclass(init=True, repr=True)
+class AmbigImplOne(AmbigImplBase):
+    bar: str
+
+
+@dataclass(init=True, repr=True)
+class AmbigImplTwo(AmbigImplBase):
+    bar: str
 
 
 class TestParser:
@@ -441,3 +457,61 @@ class TestParser:
             "- expected type <class 'tests.test_parse.IntImpl'> at .input_source, no area_code found in dataclass\n"
             "- unexpected key(s) \"city\" detected for type <class 'tests.test_parse.StringImpl'> at .input_source"
         )
+
+    def test_traits_ambiguous(self) -> None:
+        @dataclass
+        class Base:
+            a: Text
+            foo: AmbigImplBase
+
+        str_conf = """
+            {
+                a: Europe
+                foo {
+                    bar: Baz
+                }
+            }
+        """
+        with pytest.raises(AmbiguousSubclassException) as e:
+            loads(str_conf, Base)
+
+        assert e.value.args[0] == (
+            "multiple subtypes of <class 'tests.test_parse.AmbigImplBase'> matched at .foo, use '_type' to disambiguate:\n"
+            "- AmbigImplOne\n"
+            "- AmbigImplTwo"
+        )
+
+        unambig_str_conf = """
+            {
+                a: Europe
+                foo {
+                    _type: AmbigImplTwo
+                    bar: Baz
+                }
+            }
+        """
+        conf = loads(unambig_str_conf, Base)
+        assert isinstance(conf.foo, AmbigImplTwo)
+
+    def test_any(self) -> None:
+        @dataclass
+        class Base:
+            foo: Any
+
+        list_conf = """
+            {
+                foo: [1, 2]
+            }
+        """
+
+        conf = loads(list_conf, Base)
+        assert conf.foo == [1, 2]
+
+        dict_conf = """
+            {
+                foo: {a:1}
+            }
+        """
+
+        conf = loads(dict_conf, Base)
+        assert conf.foo == {"a": 1}
