@@ -439,15 +439,15 @@ class TestParser:
             input_source: InputType
 
         str_conf = """
-                {
-                    location: Europe
-                    input_source {
-                        name: Thailand
-                        age: "12"
-                        city: Paris
-                    }
-                }
-                """
+        {
+            location: Europe
+            input_source {
+                name: Thailand
+                age: "12"
+                city: Paris
+            }
+        }
+        """
 
         with pytest.raises(TypeConfigException) as e:
             loads(str_conf, Base)
@@ -465,12 +465,12 @@ class TestParser:
             foo: AmbigImplBase
 
         str_conf = """
-            {
-                a: Europe
-                foo {
-                    bar: Baz
-                }
+        {
+            a: Europe
+            foo {
+                bar: Baz
             }
+        }
         """
         with pytest.raises(AmbiguousSubclassException) as e:
             loads(str_conf, Base)
@@ -482,13 +482,13 @@ class TestParser:
         )
 
         unambig_str_conf = """
-            {
-                a: Europe
-                foo {
-                    _type: AmbigImplTwo
-                    bar: Baz
-                }
+        {
+            a: Europe
+            foo {
+                _type: AmbigImplTwo
+                bar: Baz
             }
+        }
         """
         conf = loads(unambig_str_conf, Base)
         assert isinstance(conf.foo, AmbigImplTwo)
@@ -498,20 +498,90 @@ class TestParser:
         class Base:
             foo: Any
 
-        list_conf = """
-            {
-                foo: [1, 2]
-            }
+        conf = """
+        {
+            foo: [1, 2]
+        }
         """
+        assert loads(conf, Base).foo == [1, 2]
 
-        conf = loads(list_conf, Base)
-        assert conf.foo == [1, 2]
-
-        dict_conf = """
-            {
-                foo: {a:1}
-            }
+        conf = """
+        {
+            foo: {a: 1}
+        }
         """
+        assert loads(conf, Base).foo == {"a": 1}
 
-        conf = loads(dict_conf, Base)
-        assert conf.foo == {"a": 1}
+        conf = """
+        {
+            foo: 1
+        }
+        """
+        assert loads(conf, Base).foo == 1
+
+        conf = """
+        {
+            foo: test
+        }
+        """
+        assert loads(conf, Base).foo == "test"
+
+    def test_nested_any(self) -> None:
+        @dataclass
+        class Base:
+            foo: Dict[str, Any]
+
+        conf = """
+        {
+            foo: {a: 1}
+        }
+        """
+        assert loads(conf, Base).foo == {"a": 1}
+
+        conf = """
+        {
+            foo: {a: {b: c}}
+        }
+        """
+        assert loads(conf, Base).foo == {"a": {"b": "c"}}
+
+        conf = """
+        {
+            foo: {a: {b: {d: 1}}}
+        }
+        """
+        assert loads(conf, Base).foo == {"a": {"b": {"d": 1}}}
+
+        conf = """
+        {
+            foo: {a: {b: [c, {d: 1}]}}
+        }
+        """
+        assert loads(conf, Base).foo == {"a": {"b": ["c", {"d": 1}]}}
+
+    def test_list_any(self) -> None:
+        @dataclass
+        class Base:
+            foo: List[Any]
+
+        conf = """
+        {
+            foo: [
+                1
+                "b"
+            ]
+        }
+        """
+        assert loads(conf, Base).foo == [1, "b"]
+
+        conf = """
+        {
+            foo: [
+                {a: 1}
+                [
+                    2
+                ]
+            ]
+        }
+        """
+        assert loads(conf, Base).foo == [{"a": 1}, [2]]

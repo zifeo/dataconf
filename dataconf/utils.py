@@ -176,7 +176,9 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         return __parse_type(value, clazz, path, isinstance(value, str))
 
     if clazz is Any:
-        # At this point, abandon type enforcement
+        if type(value) is ConfigTree:
+            return dict(value)
+
         return value
 
     if isclass(clazz) and (issubclass(clazz, Enum) or issubclass(clazz, IntEnum)):
@@ -200,9 +202,6 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
 
     if clazz is relativedelta:
         return __parse_type(value, clazz, path, isinstance(value, relativedelta))
-
-    if clazz is ConfigTree:
-        return __parse_type(value, clazz, path, isinstance(value, ConfigTree))
 
     child_failures = []
     child_successes = []
