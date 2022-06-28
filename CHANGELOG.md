@@ -1,3 +1,12 @@
+## v2.0.0 (2022-06-28)
+
+### Feat
+
+- add support for any
+- add cli source and rename env dict/list to env vars (#48)
+- add support for disambiguating subtypes  (#45)
+- support for basic Enum/IntEnum implementation (#44)
+
 ## v1.5.0 (2022-04-29)
 
 ### Feat
