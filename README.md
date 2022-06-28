@@ -3,7 +3,7 @@
 [![Actions Status](https://github.com/zifeo/dataconf/workflows/CI/badge.svg)](https://github.com/zifeo/dataconf/actions)
 [![PyPI version](https://badge.fury.io/py/dataconf.svg)](https://badge.fury.io/py/dataconf)
 
-Simple dataclasses configuration management for Python with hocon/json/yaml/properties/env-vars/dict support, based on awesome and lightweight [pyhocon](https://github.com/chimpler/pyhocon) parsing library.
+Simple dataclasses configuration management for Python with hocon/json/yaml/properties/env-vars/dict/cli support, based on awesome and lightweight [pyhocon](https://github.com/chimpler/pyhocon) parsing library.
 
 ## Getting started
 
