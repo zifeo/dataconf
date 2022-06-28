@@ -47,3 +47,5 @@ class TestMulti:
         os.environ["DATACLASS_A"] = "1"
         assert multi.string("b = 2").env("DATACLASS").on(A) == A(a="1", b=2)
         os.environ.pop("DATACLASS_A")
+
+        assert multi.string("b = 2").cli(["--a", "1"]).on(A) == A(a="1", b=2)

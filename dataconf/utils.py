@@ -7,8 +7,11 @@ from enum import Enum
 from enum import IntEnum
 from inspect import isclass
 from typing import Any
+from typing import Dict
 from typing import get_args
 from typing import get_origin
+from typing import List
+from typing import Type
 from typing import Union
 
 from dataconf.exceptions import AmbiguousSubclassException
@@ -29,7 +32,7 @@ import pyparsing
 NoneType = type(None)
 
 
-def __parse_type(value, clazz, path, check):
+def __parse_type(value: Any, clazz: Type, path: str, check: bool):
     try:
         if check:
             return value
@@ -39,12 +42,12 @@ def __parse_type(value, clazz, path, check):
     raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
 
 
-def is_optional(type):
+def is_optional(type: Type):
     # Optional = Union[T, NoneType]
     return get_origin(type) is Union and NoneType in get_args(type)
 
 
-def __parse(value: any, clazz, path, strict, ignore_unexpected):
+def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected: bool):
 
     if is_dataclass(clazz):
 
@@ -242,7 +245,7 @@ def __parse(value: any, clazz, path, strict, ignore_unexpected):
     raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
 
 
-def __generate(value: object, path):
+def __generate(value: object, path: str):
 
     if is_dataclass(value):
         tree = {k: __generate(v, f"{path}.{k}") for k, v in asdict(value).items()}
@@ -263,7 +266,7 @@ def __generate(value: object, path):
     return value
 
 
-def __dict_list_parsing(prefix: str, obj):
+def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
     ret = {}
 
     def set_lens(p, focus, v):
@@ -337,3 +340,24 @@ def __dict_list_parsing(prefix: str, obj):
             set_lens(path, ret, v)
 
     return ret
+
+
+def __cli_parse(argv: List[str]):
+    kvs = {}
+    i = 0
+
+    if not argv[0].startswith("--"):
+        i += 1
+
+    while i < len(argv):
+        curr = argv[i]
+        if not curr.startswith("--"):
+            raise ParseException(f"cli argument {curr} is misplaced")
+
+        if i + 1 == len(argv):
+            raise ParseException("last argument is missing")
+
+        kvs[curr[2:].replace("-", "_")] = argv[i + 1]
+        i += 2
+
+    return __env_vars_parse("", kvs)

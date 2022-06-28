@@ -1,5 +1,6 @@
 import os
 from typing import List
+from typing import Type
 
 from dataconf import utils
 from dataconf.exceptions import MalformedConfigException
@@ -20,8 +21,12 @@ def parse(
         )
 
 
-def env_dict_list(prefix: str):
-    return utils.__dict_list_parsing(prefix, os.environ)
+def env_vars_parse(*args, **kwargs):
+    return utils.__env_vars_parse(*args, **kwargs)
+
+
+def cli_parse(*args, **kwargs):
+    return utils.__cli_parse(*args, **kwargs)
 
 
 class Multi:
@@ -32,7 +37,8 @@ class Multi:
 
     def env(self, prefix: str, **kwargs) -> "Multi":
         self.strict = False
-        return self.dict(env_dict_list(prefix), **kwargs)
+        data = env_vars_parse(prefix, os.environ)
+        return self.dict(data, **kwargs)
 
     def dict(self, obj: str, **kwargs) -> "Multi":
         conf = ConfigFactory.from_dict(obj)
@@ -50,7 +56,11 @@ class Multi:
         conf = ConfigFactory.parse_file(path)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
-    def on(self, clazz):
+    def cli(self, argv: List[str], **kwargs) -> "Multi":
+        data = cli_parse(argv)
+        return self.dict(data, **kwargs)
+
+    def on(self, clazz: Type):
         conf, *nxts = self.confs
         for nxt in nxts:
             conf = ConfigTree.merge_configs(conf, nxt)
@@ -60,31 +70,35 @@ class Multi:
 multi = Multi([])
 
 
-def env(prefix: str, clazz, **kwargs):
+def env(prefix: str, clazz: Type, **kwargs):
     return multi.env(prefix, **kwargs).on(clazz)
 
 
-def dict(obj: str, clazz, **kwargs):
+def dict(obj: str, clazz: Type, **kwargs):
     return multi.dict(obj, **kwargs).on(clazz)
 
 
-def string(s: str, clazz, **kwargs):
+def string(s: str, clazz: Type, **kwargs):
     return multi.string(s, **kwargs).on(clazz)
 
 
-def url(uri: str, clazz, **kwargs):
+def url(uri: str, clazz: Type, **kwargs):
     return multi.url(uri, **kwargs).on(clazz)
 
 
-def file(path: str, clazz, **kwargs):
+def file(path: str, clazz: Type, **kwargs):
     return multi.file(path, **kwargs).on(clazz)
 
 
-def load(path: str, clazz, **kwargs):
+def cli(argv: List[str], clazz: Type, **kwargs):
+    return multi.cli(argv, **kwargs).on(clazz)
+
+
+def load(path: str, clazz: Type, **kwargs):
     return file(path, clazz, **kwargs)
 
 
-def loads(s: str, clazz, **kwargs):
+def loads(s: str, clazz: Type, **kwargs):
     return string(s, clazz, **kwargs)
 
 
@@ -94,7 +108,7 @@ def dump(file: str, instance: object, out: str):
 
 
 def dumps(instance: object, out: str):
-    conf = utils.__generate(instance, "")
+    conf = utils.generate(instance, "")
 
     if out:
         if out.lower() == "hocon":

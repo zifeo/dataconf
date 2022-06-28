@@ -139,9 +139,10 @@ conf = dataconf.env('PREFIX_', Config)
 conf = dataconf.dict({'name': 'Test'}, Config)
 conf = dataconf.url('https://raw.githubusercontent.com/zifeo/dataconf/master/confs/test.hocon', Config)
 conf = dataconf.file('confs/test.{hocon,json,yaml,properties}', Config)
+conf = dataconf.cli(sys.argv, Config)
 
 # Aggregation
-conf = dataconf.multi.string(...).env(...).url(...).file(...).dict(...).on(Config)
+conf = dataconf.multi.string(...).env(...).url(...).file(...).dict(...).cli(...).on(Config)
 
 # Same api as Python json/yaml packages (e.g. `load`, `loads`, `dump`, `dumps`)
 conf = dataconf.load('confs/test.{hocon,json,yaml,properties}', Config)
@@ -153,7 +154,7 @@ dataconf.dump('confs/test.properties', conf, out='properties')
 
 For full HOCON capabilities see [here](https://github.com/chimpler/pyhocon/#example-of-hocon-file).
 
-## Env dict/list parsing
+## Parse env vars
 
 ```bash
 PREFIX_VAR=a
@@ -202,6 +203,10 @@ is equivalent to
 ```
 
 Note that when using `.env` source, the strict mode is disabled and value might be casted.
+
+## Parse CLI arguments
+
+Same as env vars parse (dashes are converted to underscore, e.g. `TEST_A` → `--test-a`).
 
 ## CLI usage
 
