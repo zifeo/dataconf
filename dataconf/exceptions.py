@@ -10,6 +10,12 @@ class MissingTypeException(Exception):
     pass
 
 
+class AmbiguousSubclassException(Exception):
+    """Multiple subclasses match the the given parameters. Use '_type' field to disambiguate"""
+
+    pass
+
+
 class MalformedConfigException(Exception):
     """Missing values exception."""
 

@@ -1,6 +1,7 @@
 import inspect
 import os
 from typing import List
+from typing import Type
 
 from dataconf import utils
 from dataconf.exceptions import MalformedConfigException
@@ -51,8 +52,12 @@ def parse(
         )
 
 
-def env_dict_list(prefix: str):
-    return utils.__dict_list_parsing(prefix, os.environ)
+def env_vars_parse(*args, **kwargs):
+    return utils.__env_vars_parse(*args, **kwargs)
+
+
+def cli_parse(*args, **kwargs):
+    return utils.__cli_parse(*args, **kwargs)
 
 
 class Multi:
@@ -63,7 +68,8 @@ class Multi:
 
     def env(self, prefix: str, **kwargs) -> "Multi":
         self.strict = False
-        return self.dict(env_dict_list(prefix), **kwargs)
+        data = env_vars_parse(prefix, os.environ)
+        return self.dict(data, **kwargs)
 
     def dict(self, obj: str, **kwargs) -> "Multi":
         conf = ConfigFactory.from_dict(obj)
@@ -81,8 +87,11 @@ class Multi:
         conf = ConfigFactory.parse_file(path)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
-    @inject_callee_scope
-    def on(self, clazz, globalns=None, localns=None):
+    def cli(self, argv: List[str], **kwargs) -> "Multi":
+        data = cli_parse(argv)
+        return self.dict(data, **kwargs)
+
+    def on(self, clazz: Type, globalns=None, localns=None):
         conf, *nxts = self.confs
         for nxt in nxts:
             conf = ConfigTree.merge_configs(conf, nxt)
@@ -94,39 +103,36 @@ class Multi:
 multi = Multi([])
 
 
-@inject_callee_scope
-def env(prefix: str, clazz, globalns=None, localns=None, **kwargs):
-    return multi.env(prefix, **kwargs).on(clazz, globalns=globalns, localns=localns)
+def env(prefix: str, clazz: Type, **kwargs):
+    return multi.env(prefix, **kwargs).on(clazz)
 
 
-@inject_callee_scope
-def dict(obj: str, clazz, globalns=None, localns=None, **kwargs):
-    return multi.dict(obj, **kwargs).on(clazz, globalns=globalns, localns=localns)
+def dict(obj: str, clazz: Type, **kwargs):
+    return multi.dict(obj, **kwargs).on(clazz)
 
 
-@inject_callee_scope
-def string(s: str, clazz, globalns=None, localns=None, **kwargs):
-    return multi.string(s, **kwargs).on(clazz, globalns=globalns, localns=localns)
+def string(s: str, clazz: Type, **kwargs):
+    return multi.string(s, **kwargs).on(clazz)
 
 
-@inject_callee_scope
-def url(uri: str, clazz, globalns=None, localns=None, **kwargs):
-    return multi.url(uri, **kwargs).on(clazz, globalns=globalns, localns=localns)
+def url(uri: str, clazz: Type, **kwargs):
+    return multi.url(uri, **kwargs).on(clazz)
 
 
-@inject_callee_scope
-def file(path: str, clazz, globalns=None, localns=None, **kwargs):
-    return multi.file(path, **kwargs).on(clazz, globalns=globalns, localns=localns)
+def file(path: str, clazz: Type, **kwargs):
+    return multi.file(path, **kwargs).on(clazz)
 
 
-@inject_callee_scope
-def load(path: str, clazz, globalns=None, localns=None, **kwargs):
-    return file(path, clazz, globalns=globalns, localns=localns, **kwargs)
+def cli(argv: List[str], clazz: Type, **kwargs):
+    return multi.cli(argv, **kwargs).on(clazz)
 
 
-@inject_callee_scope
-def loads(s: str, clazz, globalns=None, localns=None, **kwargs):
-    return string(s, clazz, globalns=globalns, localns=localns, **kwargs)
+def load(path: str, clazz: Type, **kwargs):
+    return file(path, clazz, **kwargs)
+
+
+def loads(s: str, clazz: Type, **kwargs):
+    return string(s, clazz, **kwargs)
 
 
 def dump(file: str, instance: object, out: str):
@@ -135,7 +141,7 @@ def dump(file: str, instance: object, out: str):
 
 
 def dumps(instance: object, out: str):
-    conf = utils.__generate(instance, "")
+    conf = utils.generate(instance, "")
 
     if out:
         if out.lower() == "hocon":

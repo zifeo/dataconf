@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
 from datetime import timezone
+from enum import Enum
+from enum import IntEnum
 import os
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -11,6 +14,7 @@ from typing import Union
 
 from dataconf import load
 from dataconf import loads
+from dataconf.exceptions import AmbiguousSubclassException
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import ParseException
@@ -50,6 +54,20 @@ class IntImpl(InputType):
 
     def test_complex(self):
         return self.area_code - 10
+
+
+class AmbigImplBase:
+    pass
+
+
+@dataclass(init=True, repr=True)
+class AmbigImplOne(AmbigImplBase):
+    bar: str
+
+
+@dataclass(init=True, repr=True)
+class AmbigImplTwo(AmbigImplBase):
+    bar: str
 
 
 class TestParser:
@@ -156,6 +174,46 @@ class TestParser:
         b = test
         """
         assert loads(conf, A) == A(b="test")
+
+    def test_enum(self) -> None:
+        class Color(Enum):
+            RED = 1
+            GREEN = 2
+            BLUE = 3
+
+        @dataclass
+        class A:
+            b: Color
+
+        conf_name = """
+        b = RED
+        """
+        assert loads(conf_name, A) == A(b=Color.RED)
+
+        conf_value = """
+        b = 2
+        """
+        assert loads(conf_value, A) == A(b=Color.GREEN)
+
+    def test_int_num(self) -> None:
+        class IntColor(IntEnum):
+            RED = 1
+            GREEN = 2
+            BLUE = 3
+
+        @dataclass
+        class A:
+            b: IntColor
+
+        conf_name = """
+        b = RED
+        """
+        assert loads(conf_name, A) == A(b=IntColor.RED)
+
+        conf_value = """
+        b = 2
+        """
+        assert loads(conf_value, A) == A(b=IntColor.GREEN)
 
     def test_datetime(self) -> None:
         @dataclass
@@ -381,15 +439,15 @@ class TestParser:
             input_source: InputType
 
         str_conf = """
-                {
-                    location: Europe
-                    input_source {
-                        name: Thailand
-                        age: "12"
-                        city: Paris
-                    }
-                }
-                """
+        {
+            location: Europe
+            input_source {
+                name: Thailand
+                age: "12"
+                city: Paris
+            }
+        }
+        """
 
         with pytest.raises(TypeConfigException) as e:
             loads(str_conf, Base)
@@ -399,3 +457,131 @@ class TestParser:
             "- expected type <class 'tests.test_parse.IntImpl'> at .input_source, no area_code found in dataclass\n"
             "- unexpected key(s) \"city\" detected for type <class 'tests.test_parse.StringImpl'> at .input_source"
         )
+
+    def test_traits_ambiguous(self) -> None:
+        @dataclass
+        class Base:
+            a: Text
+            foo: AmbigImplBase
+
+        str_conf = """
+        {
+            a: Europe
+            foo {
+                bar: Baz
+            }
+        }
+        """
+        with pytest.raises(AmbiguousSubclassException) as e:
+            loads(str_conf, Base)
+
+        assert e.value.args[0] == (
+            "multiple subtypes of <class 'tests.test_parse.AmbigImplBase'> matched at .foo, use '_type' to disambiguate:\n"
+            "- AmbigImplOne\n"
+            "- AmbigImplTwo"
+        )
+
+        unambig_str_conf = """
+        {
+            a: Europe
+            foo {
+                _type: AmbigImplTwo
+                bar: Baz
+            }
+        }
+        """
+        conf = loads(unambig_str_conf, Base)
+        assert isinstance(conf.foo, AmbigImplTwo)
+
+    def test_any(self) -> None:
+        @dataclass
+        class Base:
+            foo: Any
+
+        conf = """
+        {
+            foo: [1, 2]
+        }
+        """
+        assert loads(conf, Base).foo == [1, 2]
+
+        conf = """
+        {
+            foo: {a: 1}
+        }
+        """
+        assert loads(conf, Base).foo == {"a": 1}
+
+        conf = """
+        {
+            foo: 1
+        }
+        """
+        assert loads(conf, Base).foo == 1
+
+        conf = """
+        {
+            foo: test
+        }
+        """
+        assert loads(conf, Base).foo == "test"
+
+    def test_nested_any(self) -> None:
+        @dataclass
+        class Base:
+            foo: Dict[str, Any]
+
+        conf = """
+        {
+            foo: {a: 1}
+        }
+        """
+        assert loads(conf, Base).foo == {"a": 1}
+
+        conf = """
+        {
+            foo: {a: {b: c}}
+        }
+        """
+        assert loads(conf, Base).foo == {"a": {"b": "c"}}
+
+        conf = """
+        {
+            foo: {a: {b: {d: 1}}}
+        }
+        """
+        assert loads(conf, Base).foo == {"a": {"b": {"d": 1}}}
+
+        conf = """
+        {
+            foo: {a: {b: [c, {d: 1}]}}
+        }
+        """
+        assert loads(conf, Base).foo == {"a": {"b": ["c", {"d": 1}]}}
+
+    def test_list_any(self) -> None:
+        @dataclass
+        class Base:
+            foo: List[Any]
+
+        conf = """
+        {
+            foo: [
+                1
+                "b"
+            ]
+        }
+        """
+        assert loads(conf, Base).foo == [1, "b"]
+
+        conf = """
+        {
+            foo: [
+                {a: 1}
+                [
+                    2
+                ]
+            ]
+        }
+        """
+        assert loads(conf, Base).foo == [{"a": 1}, [2]]
