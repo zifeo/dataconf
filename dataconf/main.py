@@ -66,71 +66,83 @@ class Multi:
         self.strict = strict
         self.kwargs = kwargs
 
+    @inject_callee_scope
     def env(self, prefix: str, **kwargs) -> "Multi":
         self.strict = False
         data = env_vars_parse(prefix, os.environ)
         return self.dict(data, **kwargs)
 
+    @inject_callee_scope
     def dict(self, obj: str, **kwargs) -> "Multi":
         conf = ConfigFactory.from_dict(obj)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
+    @inject_callee_scope
     def string(self, s: str, **kwargs) -> "Multi":
         conf = ConfigFactory.parse_string(s)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
+    @inject_callee_scope
     def url(self, uri: str, **kwargs) -> "Multi":
         conf = ConfigFactory.parse_URL(uri)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
+    @inject_callee_scope
     def file(self, path: str, **kwargs) -> "Multi":
         conf = ConfigFactory.parse_file(path)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
+    @inject_callee_scope
     def cli(self, argv: List[str], **kwargs) -> "Multi":
         data = cli_parse(argv)
         return self.dict(data, **kwargs)
 
-    def on(self, clazz: Type, globalns=None, localns=None):
+    def on(self, clazz: Type):
         conf, *nxts = self.confs
         for nxt in nxts:
             conf = ConfigTree.merge_configs(conf, nxt)
-        return parse(
-            conf, clazz, self.strict, globalns=globalns, localns=localns, **self.kwargs
-        )
+        return parse(conf, clazz, self.strict, **self.kwargs)
 
 
 multi = Multi([])
 
 
+@inject_callee_scope
 def env(prefix: str, clazz: Type, **kwargs):
     return multi.env(prefix, **kwargs).on(clazz)
 
 
+@inject_callee_scope
 def dict(obj: str, clazz: Type, **kwargs):
     return multi.dict(obj, **kwargs).on(clazz)
 
 
+@inject_callee_scope
 def string(s: str, clazz: Type, **kwargs):
     return multi.string(s, **kwargs).on(clazz)
 
 
+@inject_callee_scope
 def url(uri: str, clazz: Type, **kwargs):
     return multi.url(uri, **kwargs).on(clazz)
 
 
+@inject_callee_scope
 def file(path: str, clazz: Type, **kwargs):
     return multi.file(path, **kwargs).on(clazz)
 
 
+@inject_callee_scope
 def cli(argv: List[str], clazz: Type, **kwargs):
     return multi.cli(argv, **kwargs).on(clazz)
 
 
+@inject_callee_scope
 def load(path: str, clazz: Type, **kwargs):
     return file(path, clazz, **kwargs)
 
 
+@inject_callee_scope
 def loads(s: str, clazz: Type, **kwargs):
     return string(s, clazz, **kwargs)
 
