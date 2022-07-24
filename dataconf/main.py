@@ -61,47 +61,41 @@ def cli_parse(*args, **kwargs):
 
 
 class Multi:
-    def __init__(self, confs: List[ConfigTree], strict: bool = True, **kwargs) -> None:
+    def __init__(self, confs: List[ConfigTree], strict: bool = True) -> None:
         self.confs = confs
         self.strict = strict
-        self.kwargs = kwargs
 
-    @inject_callee_scope
-    def env(self, prefix: str, **kwargs) -> "Multi":
+    def env(self, prefix: str) -> "Multi":
         self.strict = False
         data = env_vars_parse(prefix, os.environ)
-        return self.dict(data, **kwargs)
+        return self.dict(data)
 
-    @inject_callee_scope
-    def dict(self, obj: str, **kwargs) -> "Multi":
+    def dict(self, obj: str) -> "Multi":
         conf = ConfigFactory.from_dict(obj)
-        return Multi(self.confs + [conf], self.strict, **kwargs)
+        return Multi(self.confs + [conf], self.strict)
 
-    @inject_callee_scope
-    def string(self, s: str, **kwargs) -> "Multi":
+    def string(self, s: str) -> "Multi":
         conf = ConfigFactory.parse_string(s)
-        return Multi(self.confs + [conf], self.strict, **kwargs)
+        return Multi(self.confs + [conf], self.strict)
 
-    @inject_callee_scope
-    def url(self, uri: str, **kwargs) -> "Multi":
+    def url(self, uri: str) -> "Multi":
         conf = ConfigFactory.parse_URL(uri)
-        return Multi(self.confs + [conf], self.strict, **kwargs)
+        return Multi(self.confs + [conf], self.strict)
 
-    @inject_callee_scope
-    def file(self, path: str, **kwargs) -> "Multi":
+    def file(self, path: str) -> "Multi":
         conf = ConfigFactory.parse_file(path)
-        return Multi(self.confs + [conf], self.strict, **kwargs)
+        return Multi(self.confs + [conf], self.strict)
+
+    def cli(self, argv: List[str]) -> "Multi":
+        data = cli_parse(argv)
+        return self.dict(data)
 
     @inject_callee_scope
-    def cli(self, argv: List[str], **kwargs) -> "Multi":
-        data = cli_parse(argv)
-        return self.dict(data, **kwargs)
-
-    def on(self, clazz: Type):
+    def on(self, clazz: Type, **kwargs):
         conf, *nxts = self.confs
         for nxt in nxts:
             conf = ConfigTree.merge_configs(conf, nxt)
-        return parse(conf, clazz, self.strict, **self.kwargs)
+        return parse(conf, clazz, self.strict, **kwargs)
 
 
 multi = Multi([])
@@ -109,32 +103,32 @@ multi = Multi([])
 
 @inject_callee_scope
 def env(prefix: str, clazz: Type, **kwargs):
-    return multi.env(prefix, **kwargs).on(clazz)
+    return multi.env(prefix).on(clazz, **kwargs)
 
 
 @inject_callee_scope
 def dict(obj: str, clazz: Type, **kwargs):
-    return multi.dict(obj, **kwargs).on(clazz)
+    return multi.dict(obj).on(clazz, **kwargs)
 
 
 @inject_callee_scope
 def string(s: str, clazz: Type, **kwargs):
-    return multi.string(s, **kwargs).on(clazz)
+    return multi.string(s).on(clazz, **kwargs)
 
 
 @inject_callee_scope
 def url(uri: str, clazz: Type, **kwargs):
-    return multi.url(uri, **kwargs).on(clazz)
+    return multi.url(uri).on(clazz, **kwargs)
 
 
 @inject_callee_scope
 def file(path: str, clazz: Type, **kwargs):
-    return multi.file(path, **kwargs).on(clazz)
+    return multi.file(path).on(clazz, **kwargs)
 
 
 @inject_callee_scope
 def cli(argv: List[str], clazz: Type, **kwargs):
-    return multi.cli(argv, **kwargs).on(clazz)
+    return multi.cli(argv).on(clazz, **kwargs)
 
 
 @inject_callee_scope
