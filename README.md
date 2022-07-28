@@ -3,7 +3,8 @@
 [![Actions Status](https://github.com/zifeo/dataconf/workflows/CI/badge.svg)](https://github.com/zifeo/dataconf/actions)
 [![PyPI version](https://badge.fury.io/py/dataconf.svg)](https://badge.fury.io/py/dataconf)
 
-Simple dataclasses configuration management for Python with hocon/json/yaml/properties/env-vars/dict/cli support, based on awesome and lightweight [pyhocon](https://github.com/chimpler/pyhocon) parsing library.
+Simple dataclasses configuration management for Python with
+hocon/json/yaml/properties/env-vars/dict/cli support.
 
 ## Getting started
 
@@ -135,24 +136,27 @@ print(
 import dataconf
 
 conf = dataconf.string('{ name: Test }', Config)
+conf = dataconf.string('name:\n\tvalue: Test', Config, loader=dataconf.YAML)  # dataconf.HOCON by default
 conf = dataconf.env('PREFIX_', Config)
 conf = dataconf.dict({'name': 'Test'}, Config)
-conf = dataconf.url('https://raw.githubusercontent.com/zifeo/dataconf/master/confs/test.hocon', Config)
-conf = dataconf.file('confs/test.{hocon,json,yaml,properties}', Config)
+conf = dataconf.url('https://raw.githubusercontent.com/zifeo/dataconf/master/confs/test.hocon', Config)  # hocon, json, yaml, properties
+conf = dataconf.file('confs/test.hocon', Config)  # hocon, json, yaml, properties
 conf = dataconf.cli(sys.argv, Config)
 
 # Aggregation
 conf = dataconf.multi.string(...).env(...).url(...).file(...).dict(...).cli(...).on(Config)
 
 # Same api as Python json/yaml packages (e.g. `load`, `loads`, `dump`, `dumps`)
-conf = dataconf.load('confs/test.{hocon,json,yaml,properties}', Config)
+conf = dataconf.load('confs/test.hocon', Config)  # hocon, json, yaml, properties
+conf = dataconf.load('confs/test.yaml', Config, loader=dataconf.YAML)  # dataconf.HOCON by default
 dataconf.dump('confs/test.hocon', conf, out='hocon')
 dataconf.dump('confs/test.json', conf, out='json')
 dataconf.dump('confs/test.yaml', conf, out='yaml')
 dataconf.dump('confs/test.properties', conf, out='properties')
 ```
 
-For full HOCON capabilities see [here](https://github.com/chimpler/pyhocon/#example-of-hocon-file).
+For full HOCON capabilities see
+[here](https://github.com/chimpler/pyhocon/#example-of-hocon-file).
 
 ## Parse env vars
 
@@ -202,11 +206,13 @@ is equivalent to
 }
 ```
 
-Note that when using `.env` source, the strict mode is disabled and value might be casted.
+Note that when using `.env` source, the strict mode is disabled and value might
+be casted.
 
 ## Parse CLI arguments
 
-Same as env vars parse (dashes are converted to underscore, e.g. `TEST_A` → `--test-a`).
+Same as env vars parse (dashes are converted to underscore, e.g. `TEST_A` →
+`--test-a`).
 
 ## CLI usage
 

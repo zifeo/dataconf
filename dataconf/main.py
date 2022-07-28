@@ -1,6 +1,9 @@
+import contextlib
 import os
 from typing import List
 from typing import Type
+from urllib.parse import urlparse
+from urllib.request import urlopen
 
 from dataconf import utils
 from dataconf.exceptions import MalformedConfigException
@@ -8,6 +11,10 @@ from pyhocon import ConfigFactory
 from pyhocon import HOCONConverter
 from pyhocon.config_parser import ConfigTree
 import pyparsing
+from yaml import safe_load
+
+HOCON = 1
+YAML = 2
 
 
 def parse(
@@ -44,15 +51,31 @@ class Multi:
         conf = ConfigFactory.from_dict(obj)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
-    def string(self, s: str, **kwargs) -> "Multi":
+    def string(self, s: str, loader: str = HOCON, **kwargs) -> "Multi":
+
+        if loader == YAML:
+            data = safe_load(s)
+            return self.dict(data, **kwargs)
+
         conf = ConfigFactory.parse_string(s)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
-    def url(self, uri: str, **kwargs) -> "Multi":
-        conf = ConfigFactory.parse_URL(uri)
+    def url(self, uri: str, timeout: int = 10, **kwargs) -> "Multi":
+        path = urlparse(uri).path
+        if path.endswith(".yaml") or path.endswith(".yml"):
+            with contextlib.closing(urlopen(uri, timeout=timeout)) as fd:
+                s = fd.read().decode("utf-8")
+            return self.string(s, loader=YAML, **kwargs)
+
+        conf = ConfigFactory.parse_URL(uri, timeout=timeout)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
     def file(self, path: str, **kwargs) -> "Multi":
+        if path.endswith(".yaml") or path.endswith(".yml"):
+            with open(path, "r") as f:
+                data = safe_load(f)
+            return self.dict(data, **kwargs)
+
         conf = ConfigFactory.parse_file(path)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
