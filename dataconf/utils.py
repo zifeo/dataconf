@@ -48,7 +48,6 @@ def is_optional(type: Type):
 
 
 def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected: bool):
-
     if is_dataclass(clazz):
 
         if not isinstance(value, ConfigTree):

@@ -12,6 +12,7 @@ from typing import Optional
 from typing import Text
 from typing import Union
 
+import dataconf
 from dataconf import load
 from dataconf import loads
 from dataconf.exceptions import AmbiguousSubclassException
@@ -20,6 +21,8 @@ from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import ParseException
 from dataconf.exceptions import TypeConfigException
 from dataconf.exceptions import UnexpectedKeysException
+from dataconf.main import file
+from dataconf.main import url
 from dateutil.relativedelta import relativedelta
 import pytest
 
@@ -268,16 +271,6 @@ class TestParser:
         {
             "b": "c"
         }
-        """
-        assert loads(conf, A) == A(b="c")
-
-    def test_yaml(self) -> None:
-        @dataclass
-        class A:
-            b: Text
-
-        conf = """
-        b: c
         """
         assert loads(conf, A) == A(b="c")
 
@@ -585,3 +578,64 @@ class TestParser:
         }
         """
         assert loads(conf, Base).foo == [{"a": 1}, [2]]
+
+    def test_yaml(self) -> None:
+        @dataclass
+        class B:
+            c: Text
+
+        @dataclass
+        class A:
+            b: B
+
+        conf = """
+        b:
+          c: test
+        """
+        assert loads(conf, A, loader=dataconf.YAML) == A(b=B(c="test"))
+
+    def test_yaml_file(self) -> None:
+        @dataclass
+        class A:
+            hello: Text
+            foo: List[str]
+
+        assert file("confs/simple.yaml", A) == A(hello="bonjour", foo=["bar"])
+
+    def test_yaml_url(self) -> None:
+        @dataclass
+        class Repo:
+            repo: str
+            rev: str
+
+        @dataclass
+        class A:
+            repos: List[Repo]
+
+        assert (
+            len(
+                url(
+                    "https://raw.githubusercontent.com/zifeo/dataconf/main/.pre-commit-config.yaml",
+                    A,
+                    ignore_unexpected=True,
+                ).repos
+            )
+            > 0
+        )
+
+    def test_json_file(self) -> None:
+        @dataclass
+        class A:
+            hello: Text
+            foo: List[str]
+
+        assert file("confs/simple.json", A) == A(hello="bonjour", foo=["bar"])
+
+    def test_json_url(self) -> None:
+        @dataclass
+        class A:
+            hello: Text
+
+        assert url(
+            "https://raw.githubusercontent.com/zifeo/dataconf/main/confs/simple.json", A
+        ) == A(hello="bonjour")
