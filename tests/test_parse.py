@@ -25,6 +25,8 @@ from dataconf.main import file
 from dataconf.main import url
 from dateutil.relativedelta import relativedelta
 import pytest
+from pytest_httpserver import HTTPServer
+from tests.conftest import file_handler
 
 PARENT_DIR = os.path.normpath(
     os.path.dirname(os.path.realpath(__file__)) + os.sep + os.pardir
@@ -602,26 +604,20 @@ class TestParser:
 
         assert file("confs/simple.yaml", A) == A(hello="bonjour", foo=["bar"])
 
-    def test_yaml_url(self) -> None:
-        @dataclass
-        class Repo:
-            repo: str
-            rev: str
-
+    def test_yaml_url(self, httpserver: HTTPServer) -> None:
         @dataclass
         class A:
-            repos: List[Repo]
+            hello: Text
+            foo: List[str]
 
-        assert (
-            len(
-                url(
-                    "https://raw.githubusercontent.com/zifeo/dataconf/main/.pre-commit-config.yaml",
-                    A,
-                    ignore_unexpected=True,
-                ).repos
-            )
-            > 0
+        httpserver.expect_request("/simple.yaml").respond_with_handler(
+            file_handler("confs/simple.yaml")
         )
+
+        assert url(
+            httpserver.url_for("/simple.yaml"),
+            A,
+        ) == A(hello="bonjour", foo=["bar"])
 
     def test_json_file(self) -> None:
         @dataclass
@@ -631,11 +627,16 @@ class TestParser:
 
         assert file("confs/simple.json", A) == A(hello="bonjour", foo=["bar"])
 
-    def test_json_url(self) -> None:
+    def test_json_url(self, httpserver: HTTPServer) -> None:
         @dataclass
         class A:
             hello: Text
+            foo: List[str]
 
-        assert url(
-            "https://raw.githubusercontent.com/zifeo/dataconf/main/confs/simple.json", A
-        ) == A(hello="bonjour")
+        httpserver.expect_request("/simple.json").respond_with_handler(
+            file_handler("confs/simple.json")
+        )
+
+        assert url(httpserver.url_for("/simple.json"), A) == A(
+            hello="bonjour", foo=["bar"]
+        )
