@@ -1,3 +1,9 @@
+## v2.1.0 (2022-07-31)
+
+### Feat
+
+- add yaml source support (#51)
+
 ## v2.0.0 (2022-06-28)
 
 ### Feat
