@@ -131,7 +131,7 @@ def dump(file: str, instance: object, out: str):
 
 
 def dumps(instance: object, out: str):
-    conf = utils.generate(instance, "")
+    conf = utils.__generate(instance, "")
 
     if out:
         if out.lower() == "hocon":

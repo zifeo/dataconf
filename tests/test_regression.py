@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
 import os
+import tempfile
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -159,3 +160,16 @@ class TestParser:
         assert dataconf.env("DC", Example) == Example(
             hello=None, world="monde", float_num=1.3, int_num=2, bool_var=True
         )
+
+    def test_dump_fail_54(self):
+        @dataclass
+        class Config:
+            experiment_name: str
+
+        original = Config("test_dump")
+
+        with tempfile.NamedTemporaryFile() as f:
+            dataconf.dump(f.name, original, out="yaml")
+            validate = dataconf.file(f.name, Config)
+
+        assert original == validate
