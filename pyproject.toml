@@ -30,12 +30,15 @@ dataconf = 'dataconf.cli:run'
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pyhocon = "^0.3.59"
+pyhocon = "^0.3.58"
 python-dateutil = "^2.8.2"
 PyYAML = "^6.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.3"
+pytest-cov = "^4.0.0"
+genbadge = "^1.1.0"
+defusedxml = "^0.7.1"
 pre-commit = "^2.20.0"
 commitizen = "^2.35.0"
 pytest-httpserver = "^1.0.6"

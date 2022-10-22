@@ -2,6 +2,7 @@
 
 [![Actions Status](https://github.com/zifeo/dataconf/workflows/CI/badge.svg)](https://github.com/zifeo/dataconf/actions)
 [![PyPI version](https://badge.fury.io/py/dataconf.svg)](https://badge.fury.io/py/dataconf)
+[![Coverage Status](./reports/coverage/coverage-badge.svg?dummy=8484744)](./reports/coverage/index.html)
 
 Simple dataclasses configuration management for Python with
 hocon/json/yaml/properties/env-vars/dict/cli support.
