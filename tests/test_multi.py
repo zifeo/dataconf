@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 import os
 from typing import Text
+import urllib
 
 from dataconf import multi
+import pytest
 
 
 class TestMulti:
@@ -49,3 +51,14 @@ class TestMulti:
         os.environ.pop("DATACLASS_A")
 
         assert multi.string("b = 2").cli(["--a", "1"]).on(A) == A(a="1", b=2)
+
+    def test_404(self) -> None:
+        @dataclass
+        class A:
+            hello: str
+
+        with pytest.raises(urllib.error.URLError):
+            multi.url("http://doesnotexists/simple.hocon").on(A)
+
+        with pytest.raises(urllib.error.URLError):
+            multi.url("http://doesnotexists/simple.yaml").on(A)

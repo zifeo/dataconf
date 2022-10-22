@@ -115,15 +115,15 @@ print(dataconf.string(conf, Config))
 
 @dataclass
 class Example:
-    hello: string
-    world: string
+    hello: str
+    world: str
 
 os.environ['DC_WORLD'] = 'monde'
 
 print(
     dataconf
     .multi
-    .url('https://raw.githubusercontent.com/zifeo/dataconf/master/confs/simple.hocon')
+    .url('https://raw.githubusercontent.com/zifeo/dataconf/main/confs/simple.hocon')
     .env('DC')
     .on(Example)
 )

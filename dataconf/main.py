@@ -67,7 +67,7 @@ class Multi:
                 s = fd.read().decode("utf-8")
             return self.string(s, loader=YAML, **kwargs)
 
-        conf = ConfigFactory.parse_URL(uri, timeout=timeout)
+        conf = ConfigFactory.parse_URL(uri, timeout=timeout, required=True)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
     def file(self, path: str, **kwargs) -> "Multi":
