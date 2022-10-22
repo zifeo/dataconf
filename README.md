@@ -117,6 +117,7 @@ print(dataconf.string(conf, Config))
 class Example:
     hello: str
     world: str
+    foo: List[str]
 
 os.environ['DC_WORLD'] = 'monde'
 
