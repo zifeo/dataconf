@@ -23,6 +23,11 @@ poetry add git+https://github.com/zifeo/dataconf.git
 # local repo/dev
 poetry install
 pre-commit install
+
+# update coverage badge
+poetry run pytest --cov=dataconf
+coverage xml
+genbadge coverage
 ```
 
 ## Usage
