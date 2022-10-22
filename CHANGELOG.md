@@ -1,3 +1,10 @@
+## v2.1.2 (2022-10-22)
+
+### Fix
+
+- readme
+- remote loading error, close #57
+
 ## v2.1.1 (2022-09-16)
 
 ### Fix
