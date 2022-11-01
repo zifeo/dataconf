@@ -10,9 +10,9 @@ jobs:
   test-release:
     uses: zifeo/workflows/.github/workflows/py-test-release.yml@main
     with:
-      python-matrix: '["3.8", "3.9", "3.10"]'
+      python-matrix: '["3.8", "3.9", "3.10", "3.11"]'
       poetry-version: "1.1.12"
-      python-version: "3.10"
+      python-version: "3.11"
       publish-pypi: true
     secrets:
       pypi-token: ${{ secrets.PYPI_TOKEN }}
