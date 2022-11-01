@@ -11,7 +11,7 @@ jobs:
     uses: zifeo/workflows/.github/workflows/py-test-release.yml@main
     with:
       python-matrix: '["3.8", "3.9", "3.10", "3.11"]'
-      poetry-version: "1.1.12"
+      poetry-version: "1.2.1"
       python-version: "3.11"
       publish-pypi: true
     secrets:
