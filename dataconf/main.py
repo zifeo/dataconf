@@ -1,5 +1,6 @@
 import contextlib
 import os
+from typing import Any
 from typing import List
 from typing import Type
 from urllib.parse import urlparse
@@ -47,7 +48,7 @@ class Multi:
         data = env_vars_parse(prefix, os.environ)
         return self.dict(data, **kwargs)
 
-    def dict(self, obj: str, **kwargs) -> "Multi":
+    def dict(self, obj: dict[str, Any], **kwargs) -> "Multi":
         conf = ConfigFactory.from_dict(obj)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
@@ -97,7 +98,7 @@ def env(prefix: str, clazz: Type, **kwargs):
     return multi.env(prefix, **kwargs).on(clazz)
 
 
-def dict(obj: str, clazz: Type, **kwargs):
+def dict(obj: dict[str, Any], clazz: Type, **kwargs):
     return multi.dict(obj, **kwargs).on(clazz)
 
 
