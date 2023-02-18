@@ -49,7 +49,6 @@ def is_optional(type: Type):
 
 def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected: bool):
     if is_dataclass(clazz):
-
         if not isinstance(value, ConfigTree):
             raise TypeConfigException(
                 f"expected type {clazz} at {path}, got {type(value)}"
@@ -59,7 +58,6 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         renamings = dict()
 
         for f in fields(clazz):
-
             if f.name in value:
                 val = value[f.name]
             elif f.name.replace("_", "-") in value:
@@ -244,7 +242,6 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
 
 
 def __generate(value: object, path: str):
-
     if is_dataclass(value):
         tree = {k: __generate(v, f"{path}.{k}") for k, v in asdict(value).items()}
         return ConfigTree(tree)
@@ -268,7 +265,6 @@ def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
     ret = {}
 
     def set_lens(p, focus, v):
-
         # value
         if len(p) == 1:
             # []x
@@ -283,7 +279,6 @@ def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
 
         # dict
         if p[1] == "":
-
             if p[0] not in focus:
                 # []{x}
                 if isinstance(focus, list):
@@ -298,7 +293,6 @@ def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
 
         # list (only if the focus/value is already a list or if it starts with element 0)
         if isinstance(p[1], int) and (p[1] == 0 or isinstance(focus[p[0]], list)):
-
             if p[0] not in focus:
                 # [][x]
                 if isinstance(focus, list):
