@@ -284,14 +284,12 @@ class TestParser:
         assert loads("", A) == A(b="c")
 
     def test_root_dict(self) -> None:
-
         conf = """
         b: c
         """
         assert loads(conf, Dict[Text, Text]) == dict(b="c")
 
     def test_missing_type(self) -> None:
-
         with pytest.raises(MissingTypeException):
             loads("", Dict)
 
@@ -312,7 +310,6 @@ class TestParser:
             assert loads(conf, A) == A(b="c")
 
     def test_misformat(self) -> None:
-
         conf = """
         b {}
         c {
@@ -330,7 +327,6 @@ class TestParser:
             loads(conf, Dict[Text, Clazz])
 
     def test_ignore_unexpected(self) -> None:
-
         conf = """
         a = "hello"
         b = "world"

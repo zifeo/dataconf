@@ -54,7 +54,6 @@ class Multi:
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
     def string(self, s: str, loader: str = HOCON, **kwargs) -> "Multi":
-
         if loader == YAML:
             data = safe_load(s)
             return self.dict(data, **kwargs)
