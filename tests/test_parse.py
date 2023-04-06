@@ -180,6 +180,21 @@ class TestParser:
         """
         assert loads(conf, A) == A(b="test")
 
+    def test_str_enum(self) -> None:
+        class Color(str, Enum):
+            RED = "red"
+            GREEN = "green"
+            BLUE = "blue"
+
+        @dataclass
+        class A:
+            b: Color
+
+        conf_value = """
+        b = red
+        """
+        assert loads(conf_value, A) == A(b=Color.RED)
+
     def test_enum(self) -> None:
         class Color(Enum):
             RED = 1
