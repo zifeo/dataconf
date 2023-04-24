@@ -181,6 +181,8 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
     if isclass(clazz) and (issubclass(clazz, Enum) or issubclass(clazz, IntEnum)):
         if isinstance(value, int):
             return clazz.__call__(value)
+        elif issubclass(clazz, str):
+            return clazz(value)
         elif isinstance(value, str):
             return clazz.__getattr__(value)
         else:
