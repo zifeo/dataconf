@@ -97,9 +97,11 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
     if origin is list:
         if len(args) != 1:
             raise MissingTypeException("expected list with type information: List[?]")
+
         if value is not None:
+            parse_candidate = args[0]
             return [
-                __parse(v, args[0], f"{path}[]", strict, ignore_unexpected)
+                __parse(v, parse_candidate, f"{path}[]", strict, ignore_unexpected)
                 for v in value
             ]
         return None
@@ -110,8 +112,10 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
                 "expected dict with type information: Dict[?, ?]"
             )
         if value is not None:
+            # ignore key type
+            parse_candidate = args[1]
             return {
-                k: __parse(v, args[1], f"{path}.{k}", strict, ignore_unexpected)
+                k: __parse(v, parse_candidate, f"{path}.{k}", strict, ignore_unexpected)
                 for k, v in value.items()
             }
         return None
@@ -131,17 +135,15 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             return None
 
     if origin is Union:
-        left, right = args
-
-        try:
-            return __parse(value, left, path, strict, ignore_unexpected)
-        except TypeConfigException as left_failure:
+        for parse_candidate in args:
             try:
-                return __parse(value, right, path, strict, ignore_unexpected)
-            except TypeConfigException as right_failure:
-                raise TypeConfigException(
-                    f"expected type {clazz} at {path}, failed both:\n- {left_failure}\n- {right_failure}"
-                )
+                return __parse(value, parse_candidate, path, strict, ignore_unexpected)
+            except TypeConfigException:
+                continue
+
+        raise TypeConfigException(
+            f"expected one of {', '.join(map(str, args))} at {path}, got {type(value)}"
+        )
 
     if clazz is bool:
         if not strict:
@@ -185,10 +187,8 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             return clazz(value)
         elif isinstance(value, str):
             return clazz.__getattr__(value)
-        else:
-            raise TypeConfigException(
-                f"expected str or int at {path}, got {type(value)}"
-            )
+
+        raise TypeConfigException(f"expected str or int at {path}, got {type(value)}")
 
     if clazz is datetime:
         dt = __parse_type(value, clazz, path, isinstance(value, str))
