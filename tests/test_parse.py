@@ -4,6 +4,7 @@ from datetime import datetime
 from datetime import timezone
 from enum import Enum
 from enum import IntEnum
+from enum import StrEnum
 import os
 from typing import Any
 from typing import Dict
@@ -182,6 +183,21 @@ class TestParser:
 
     def test_str_enum(self) -> None:
         class Color(str, Enum):
+            RED = "red"
+            GREEN = "green"
+            BLUE = "blue"
+
+        @dataclass
+        class A:
+            b: Color
+
+        conf_value = """
+        b = red
+        """
+        assert loads(conf_value, A) == A(b=Color.RED)
+
+    def test_strenum_class(self) -> None:
+        class Color(StrEnum):
             RED = "red"
             GREEN = "green"
             BLUE = "blue"
