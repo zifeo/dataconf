@@ -72,7 +72,9 @@ class Multi:
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
     def file(self, path: str, loader: Optional[str] = None, **kwargs) -> "Multi":
-        if loader == YAML or path.endswith(".yaml") or path.endswith(".yml"):
+        if loader == YAML or (
+            loader is None and (path.endswith(".yaml") or path.endswith(".yml"))
+        ):
             with open(path, "r") as f:
                 data = safe_load(f)
             return self.dict(data, **kwargs)
