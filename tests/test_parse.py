@@ -628,7 +628,10 @@ class TestParser:
             hello: Text
             foo: List[str]
 
-        assert file("confs/simple.yaml", A) == A(hello="bonjour", foo=["bar"])
+        expected = A(hello="bonjour", foo=["bar"])
+        assert file("confs/simple.yaml", A) == expected
+        assert load("confs/simple.yaml", A) == expected
+        assert load("confs/simple.yaml", A, loader=dataconf.YAML) == expected
 
     def test_yaml_url(self, httpserver: HTTPServer) -> None:
         @dataclass

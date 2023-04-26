@@ -1,6 +1,6 @@
 import contextlib
 import os
-from typing import Any
+from typing import Any, Optional
 from typing import Dict
 from typing import List
 from typing import Type
@@ -71,8 +71,8 @@ class Multi:
         conf = ConfigFactory.parse_URL(uri, timeout=timeout, required=True)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
-    def file(self, path: str, **kwargs) -> "Multi":
-        if path.endswith(".yaml") or path.endswith(".yml"):
+    def file(self, path: str, loader: Optional[str] = None, **kwargs) -> "Multi":
+        if loader == YAML or path.endswith(".yaml") or path.endswith(".yml"):
             with open(path, "r") as f:
                 data = safe_load(f)
             return self.dict(data, **kwargs)
