@@ -154,7 +154,7 @@ class TestParser:
 
         @dataclass
         class A:
-            b: Union[B, Text]
+            b: Union[B, Text, int]
 
         conf = """
         b {
@@ -167,6 +167,21 @@ class TestParser:
         b = test
         """
         assert loads(conf, A) == A(b="test")
+
+        conf = """
+        b = 1
+        """
+        assert loads(conf, A) == A(b=1)
+
+        conf = """
+        b = 1.1
+        """
+        with pytest.raises(TypeConfigException) as e:
+            loads(conf, A)
+
+        assert e.value.args[0] == (
+            "expected one of <class 'tests.test_parse.TestParser.test_union.<locals>.B'>, <class 'str'>, <class 'int'> at .b, got <class 'float'>"
+        )
 
     def test_optional(self) -> None:
         @dataclass
@@ -634,7 +649,10 @@ class TestParser:
             hello: Text
             foo: List[str]
 
-        assert file("confs/simple.yaml", A) == A(hello="bonjour", foo=["bar"])
+        expected = A(hello="bonjour", foo=["bar"])
+        assert file("confs/simple.yaml", A) == expected
+        assert load("confs/simple.yaml", A) == expected
+        assert load("confs/simple.yaml", A, loader=dataconf.YAML) == expected
 
     def test_yaml_url(self, httpserver: HTTPServer) -> None:
         @dataclass
