@@ -1,3 +1,17 @@
+## v2.2.0 (2023-05-23)
+
+### Feat
+
+- support StrEnum from python 3.11 (#91)
+- add support fro string enum (#88)
+- dependabot (#69)
+- upgrade deps and switch to ruff (#68)
+
+### Fix
+
+- union and yaml loader fixes (#92)
+- license
+
 ## v2.1.3 (2022-12-05)
 
 ### Fix
