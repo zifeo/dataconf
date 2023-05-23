@@ -196,7 +196,9 @@ class TestParser:
         """
         assert loads(conf_value, A) == A(b=Color.RED)
 
-    @pytest.mark.skipif(sys.version_info < (3, 11), reason="Test only runs for version 3.11+")
+    @pytest.mark.skipif(
+        sys.version_info < (3, 11), reason="Test only runs for version 3.11+"
+    )
     def test_strenum_class(self) -> None:
         from enum import StrEnum
 
