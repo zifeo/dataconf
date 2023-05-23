@@ -4,8 +4,8 @@ from datetime import datetime
 from datetime import timezone
 from enum import Enum
 from enum import IntEnum
-from enum import StrEnum
 import os
+import sys
 from typing import Any
 from typing import Dict
 from typing import List
@@ -196,7 +196,10 @@ class TestParser:
         """
         assert loads(conf_value, A) == A(b=Color.RED)
 
+    @pytest.mark.skipif(sys.version_info < (3, 11), reason="Test only runs for version 3.11+")
     def test_strenum_class(self) -> None:
+        from enum import StrEnum
+
         class Color(StrEnum):
             RED = "red"
             GREEN = "green"
