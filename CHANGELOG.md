@@ -1,3 +1,9 @@
+## v2.2.1 (2023-05-26)
+
+### Fix
+
+- for issue with nested dataclasses that have default values #98
+
 ## v2.2.0 (2023-05-23)
 
 ### Feat
