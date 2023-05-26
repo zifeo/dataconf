@@ -690,3 +690,27 @@ class TestParser:
         assert url(httpserver.url_for("/simple.json"), A) == A(
             hello="bonjour", foo=["bar"]
         )
+
+    def test_nested_with_defaults(self):
+        @dataclass
+        class Nested:
+            nested_a: bool = False
+            nested_b: str = field(default="some default value")
+
+        @dataclass
+        class TopLevel:
+            top_a: str
+            top_b: str = field(default="some other value")
+            top_c: Nested = field(
+                default_factory=Nested
+            )  # nested dataclass with a default factory
+
+        config_string = """
+        top_a: "some value"
+        """
+
+        assert loads(config_string, TopLevel, loader=dataconf.YAML) == TopLevel(
+            top_a="some value",
+            top_b="some other value",
+            top_c=Nested(nested_a=False, nested_b="some default value"),
+        )
