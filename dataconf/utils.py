@@ -6,6 +6,7 @@ from datetime import datetime
 from enum import Enum
 from enum import IntEnum
 from inspect import isclass
+
 from typing import Any
 from typing import Dict
 from typing import get_args
@@ -28,6 +29,12 @@ from pyhocon.config_tree import ConfigList
 from pyhocon.config_tree import ConfigTree
 import pyparsing
 
+from dataconf.version import PY310up
+
+
+if PY310up:
+    from types import UnionType
+
 
 NoneType = type(None)
 
@@ -42,9 +49,13 @@ def __parse_type(value: Any, clazz: Type, path: str, check: bool):
     raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
 
 
+def is_union(origin):
+    return origin is Union or (PY310up and origin is UnionType)
+
+
 def is_optional(type: Type):
     # Optional = Union[T, NoneType]
-    return get_origin(type) is Union and NoneType in get_args(type)
+    return is_union(get_origin(type)) and NoneType in get_args(type)
 
 
 def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected: bool):
@@ -123,33 +134,29 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             }
         return None
 
-    if is_optional(clazz):
-        left, right = args
-        try:
-            return __parse(
-                value,
-                left if right is NoneType else right,
-                path,
-                strict,
-                ignore_unexpected,
-            )
-        except TypeConfigException:
-            # cannot parse Optional
-            return None
-
-    if origin is Union:
+    if is_union(origin):
+        # Optional = Union[T, NoneType]
+        has_none = False
         for parse_candidate in args:
-            try:
-                return __parse(value, parse_candidate, path, strict, ignore_unexpected)
-            except TypeConfigException:
-                continue
+            if parse_candidate is NoneType:
+                has_none = True
+            else:
+                try:
+                    return __parse(
+                        value, parse_candidate, path, strict, ignore_unexpected
+                    )
+                except TypeConfigException:
+                    continue
+
+        if has_none:
+            return None
 
         raise TypeConfigException(
             f"expected one of {', '.join(map(str, args))} at {path}, got {type(value)}"
         )
 
     if clazz is bool:
-        if not strict:
+        if not strict and value is not None:
             try:
                 value = bool(value)
             except ValueError:
@@ -157,7 +164,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         return __parse_type(value, clazz, path, isinstance(value, bool))
 
     if clazz is int:
-        if not strict:
+        if not strict and value is not None:
             try:
                 value = int(value)
             except ValueError:
@@ -165,7 +172,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         return __parse_type(value, clazz, path, isinstance(value, int))
 
     if clazz is float:
-        if not strict:
+        if not strict and value is not None:
             try:
                 value = float(value)
             except ValueError:
