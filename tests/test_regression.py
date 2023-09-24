@@ -3,14 +3,18 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
 import os
+import tempfile
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Text
 from typing import Union
+import pytest
 
 import dataconf
 from dateutil.relativedelta import relativedelta
+
+from dataconf.version import PY310up
 
 PARENT_DIR = os.path.normpath(
     os.path.dirname(os.path.realpath(__file__)) + os.sep + os.pardir
@@ -159,3 +163,34 @@ class TestParser:
         assert dataconf.env("DC", Example) == Example(
             hello=None, world="monde", float_num=1.3, int_num=2, bool_var=True
         )
+
+    def test_dump_fail_54(self):
+        @dataclass
+        class Config:
+            experiment_name: str
+
+        original = Config("test_dump")
+
+        with tempfile.NamedTemporaryFile() as f:
+            dataconf.dump(f.name, original, out="yaml")
+            validate = dataconf.file(f.name, Config)
+
+        assert original == validate
+
+    @pytest.mark.skipif(not PY310up, reason="Test only runs for version 3.10+")
+    def test_union_alt_syntax_112(self):
+        @dataclass
+        class Borked:
+            foo: str | int
+
+        assert dataconf.dict({"foo": 123}, Borked) == Borked(foo=123)
+        assert dataconf.dict({"foo": "asdf"}, Borked) == Borked(foo="asdf")
+
+        @dataclass
+        class BorkedOpt:
+            foo: Optional[str | int]
+
+        assert dataconf.dict({"foo": None}, BorkedOpt) == BorkedOpt(foo=None)
+        assert dataconf.dict({}, BorkedOpt) == BorkedOpt(foo=None)
+        assert dataconf.dict({"foo": 123}, BorkedOpt) == BorkedOpt(foo=123)
+        assert dataconf.dict({"foo": "asdf"}, BorkedOpt) == BorkedOpt(foo="asdf")

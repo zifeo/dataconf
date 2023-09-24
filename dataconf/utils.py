@@ -6,6 +6,7 @@ from datetime import datetime
 from enum import Enum
 from enum import IntEnum
 from inspect import isclass
+
 from typing import Any
 from typing import Dict
 from typing import get_args
@@ -29,6 +30,12 @@ from pyhocon.config_tree import ConfigList
 from pyhocon.config_tree import ConfigTree
 import pyparsing
 
+from dataconf.version import PY310up
+
+
+if PY310up:
+    from types import UnionType
+
 
 NoneType = type(None)
 
@@ -43,9 +50,13 @@ def __parse_type(value: Any, clazz: Type, path: str, check: bool):
     raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
 
 
+def is_union(origin):
+    return origin is Union or (PY310up and origin is UnionType)
+
+
 def is_optional(type: Type):
     # Optional = Union[T, NoneType]
-    return get_origin(type) is Union and NoneType in get_args(type)
+    return is_union(get_origin(type)) and NoneType in get_args(type)
 
 
 def __parse(
@@ -57,9 +68,7 @@ def __parse(
     globalns,
     localns,
 ):
-
     if is_dataclass(clazz):
-
         if not isinstance(value, ConfigTree):
             raise TypeConfigException(
                 f"expected type {clazz} at {path}, got {type(value)}"
@@ -70,7 +79,6 @@ def __parse(
 
         type_hints = get_type_hints(clazz, globalns, localns)
         for f in fields(clazz):
-
             if f.name in value:
                 val = value[f.name]
             elif f.name.replace("_", "-") in value:
@@ -81,6 +89,9 @@ def __parse(
                     val = f.default_factory()
                 else:
                     val = f.default
+                if is_dataclass(val):
+                    # if val is a dataclass, convert to ConfigTree
+                    val = ConfigTree(asdict(val))
 
             if not isinstance(val, _MISSING_TYPE):
                 fs[f.name] = __parse(
@@ -116,7 +127,9 @@ def __parse(
     if origin is list:
         if len(args) != 1:
             raise MissingTypeException("expected list with type information: List[?]")
+
         if value is not None:
+            parse_candidate = args[0]
             return [
                 __parse(
                     v,
@@ -137,6 +150,8 @@ def __parse(
                 "expected dict with type information: Dict[?, ?]"
             )
         if value is not None:
+            # ignore key type
+            parse_candidate = args[1]
             return {
                 k: __parse(
                     v,
@@ -151,41 +166,35 @@ def __parse(
             }
         return None
 
-    if is_optional(clazz):
-        left, right = args
-        try:
-            return __parse(
-                value,
-                left if right is NoneType else right,
-                path,
-                strict,
-                ignore_unexpected,
-                globalns,
-                localns,
-            )
-        except TypeConfigException:
-            # cannot parse Optional
+    if is_union(origin):
+        # Optional = Union[T, NoneType]
+        has_none = False
+        for parse_candidate in args:
+            if parse_candidate is NoneType:
+                has_none = True
+            else:
+                try:
+                    return __parse(
+                        value,
+                        parse_candidate,
+                        path,
+                        strict,
+                        ignore_unexpected,
+                        globalns,
+                        localns,
+                    )
+                except TypeConfigException:
+                    continue
+
+        if has_none:
             return None
 
-    if origin is Union:
-        left, right = args
-
-        try:
-            return __parse(
-                value, left, path, strict, ignore_unexpected, globalns, localns
-            )
-        except TypeConfigException as left_failure:
-            try:
-                return __parse(
-                    value, right, path, strict, ignore_unexpected, globalns, localns
-                )
-            except TypeConfigException as right_failure:
-                raise TypeConfigException(
-                    f"expected type {clazz} at {path}, failed both:\n- {left_failure}\n- {right_failure}"
-                )
+        raise TypeConfigException(
+            f"expected one of {', '.join(map(str, args))} at {path}, got {type(value)}"
+        )
 
     if clazz is bool:
-        if not strict:
+        if not strict and isinstance(value, str):
             try:
                 value = bool(value)
             except ValueError:
@@ -193,15 +202,17 @@ def __parse(
         return __parse_type(value, clazz, path, isinstance(value, bool))
 
     if clazz is int:
-        if not strict:
+        if not strict and isinstance(value, str):
             try:
-                value = int(value)
+                cast = int(value)
+                if float(cast) == float(value):
+                    value = cast
             except ValueError:
                 pass
         return __parse_type(value, clazz, path, isinstance(value, int))
 
     if clazz is float:
-        if not strict:
+        if not strict and isinstance(value, str):
             try:
                 value = float(value)
             except ValueError:
@@ -222,12 +233,12 @@ def __parse(
     if isclass(clazz) and (issubclass(clazz, Enum) or issubclass(clazz, IntEnum)):
         if isinstance(value, int):
             return clazz.__call__(value)
+        elif issubclass(clazz, str):
+            return clazz(value)
         elif isinstance(value, str):
             return clazz.__getattr__(value)
-        else:
-            raise TypeConfigException(
-                f"expected str or int at {path}, got {type(value)}"
-            )
+
+        raise TypeConfigException(f"expected str or int at {path}, got {type(value)}")
 
     if clazz is datetime:
         dt = __parse_type(value, clazz, path, isinstance(value, str))
@@ -291,7 +302,6 @@ def __parse(
 
 
 def __generate(value: object, path: str):
-
     if is_dataclass(value):
         tree = {k: __generate(v, f"{path}.{k}") for k, v in asdict(value).items()}
         return ConfigTree(tree)
@@ -315,7 +325,6 @@ def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
     ret = {}
 
     def set_lens(p, focus, v):
-
         # value
         if len(p) == 1:
             # []x
@@ -330,7 +339,6 @@ def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
 
         # dict
         if p[1] == "":
-
             if p[0] not in focus:
                 # []{x}
                 if isinstance(focus, list):
@@ -345,7 +353,6 @@ def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
 
         # list (only if the focus/value is already a list or if it starts with element 0)
         if isinstance(p[1], int) and (p[1] == 0 or isinstance(focus[p[0]], list)):
-
             if p[0] not in focus:
                 # [][x]
                 if isinstance(focus, list):

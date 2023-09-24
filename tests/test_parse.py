@@ -12,6 +12,7 @@ from typing import Optional
 from typing import Text
 from typing import Union
 
+import dataconf
 from dataconf import load
 from dataconf import loads
 from dataconf.exceptions import AmbiguousSubclassException
@@ -20,8 +21,13 @@ from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import ParseException
 from dataconf.exceptions import TypeConfigException
 from dataconf.exceptions import UnexpectedKeysException
+from dataconf.main import file
+from dataconf.main import url
 from dateutil.relativedelta import relativedelta
 import pytest
+from pytest_httpserver import HTTPServer
+from dataconf.version import PY311up
+from tests.conftest import file_handler
 
 PARENT_DIR = os.path.normpath(
     os.path.dirname(os.path.realpath(__file__)) + os.sep + os.pardir
@@ -148,7 +154,7 @@ class TestParser:
 
         @dataclass
         class A:
-            b: Union[B, Text]
+            b: Union[B, Text, int]
 
         conf = """
         b {
@@ -162,6 +168,21 @@ class TestParser:
         """
         assert loads(conf, A) == A(b="test")
 
+        conf = """
+        b = 1
+        """
+        assert loads(conf, A) == A(b=1)
+
+        conf = """
+        b = 1.1
+        """
+        with pytest.raises(TypeConfigException) as e:
+            loads(conf, A)
+
+        assert e.value.args[0] == (
+            "expected one of <class 'tests.test_parse.TestParser.test_union.<locals>.B'>, <class 'str'>, <class 'int'> at .b, got <class 'float'>"
+        )
+
     def test_optional(self) -> None:
         @dataclass
         class A:
@@ -174,6 +195,39 @@ class TestParser:
         b = test
         """
         assert loads(conf, A) == A(b="test")
+
+    def test_str_enum(self) -> None:
+        class Color(str, Enum):
+            RED = "red"
+            GREEN = "green"
+            BLUE = "blue"
+
+        @dataclass
+        class A:
+            b: Color
+
+        conf_value = """
+        b = red
+        """
+        assert loads(conf_value, A) == A(b=Color.RED)
+
+    @pytest.mark.skipif(not PY311up, reason="Test only runs for version 3.11+")
+    def test_strenum_class(self) -> None:
+        from enum import StrEnum
+
+        class Color(StrEnum):
+            RED = "red"
+            GREEN = "green"
+            BLUE = "blue"
+
+        @dataclass
+        class A:
+            b: Color
+
+        conf_value = """
+        b = red
+        """
+        assert loads(conf_value, A) == A(b=Color.RED)
 
     def test_enum(self) -> None:
         class Color(Enum):
@@ -271,16 +325,6 @@ class TestParser:
         """
         assert loads(conf, A) == A(b="c")
 
-    def test_yaml(self) -> None:
-        @dataclass
-        class A:
-            b: Text
-
-        conf = """
-        b: c
-        """
-        assert loads(conf, A) == A(b="c")
-
     def test_default_value(self) -> None:
         @dataclass
         class A:
@@ -289,14 +333,12 @@ class TestParser:
         assert loads("", A) == A(b="c")
 
     def test_root_dict(self) -> None:
-
         conf = """
         b: c
         """
         assert loads(conf, Dict[Text, Text]) == dict(b="c")
 
     def test_missing_type(self) -> None:
-
         with pytest.raises(MissingTypeException):
             loads("", Dict)
 
@@ -317,7 +359,6 @@ class TestParser:
             assert loads(conf, A) == A(b="c")
 
     def test_misformat(self) -> None:
-
         conf = """
         b {}
         c {
@@ -335,7 +376,6 @@ class TestParser:
             loads(conf, Dict[Text, Clazz])
 
     def test_ignore_unexpected(self) -> None:
-
         conf = """
         a = "hello"
         b = "world"
@@ -585,3 +625,90 @@ class TestParser:
         }
         """
         assert loads(conf, Base).foo == [{"a": 1}, [2]]
+
+    def test_yaml(self) -> None:
+        @dataclass
+        class B:
+            c: Text
+
+        @dataclass
+        class A:
+            b: B
+
+        conf = """
+        b:
+          c: test
+        """
+        assert loads(conf, A, loader=dataconf.YAML) == A(b=B(c="test"))
+
+    def test_yaml_file(self) -> None:
+        @dataclass
+        class A:
+            hello: Text
+            foo: List[str]
+
+        expected = A(hello="bonjour", foo=["bar"])
+        assert file("confs/simple.yaml", A) == expected
+        assert load("confs/simple.yaml", A) == expected
+        assert load("confs/simple.yaml", A, loader=dataconf.YAML) == expected
+
+    def test_yaml_url(self, httpserver: HTTPServer) -> None:
+        @dataclass
+        class A:
+            hello: Text
+            foo: List[str]
+
+        httpserver.expect_request("/simple.yaml").respond_with_handler(
+            file_handler("confs/simple.yaml")
+        )
+
+        assert url(
+            httpserver.url_for("/simple.yaml"),
+            A,
+        ) == A(hello="bonjour", foo=["bar"])
+
+    def test_json_file(self) -> None:
+        @dataclass
+        class A:
+            hello: Text
+            foo: List[str]
+
+        assert file("confs/simple.json", A) == A(hello="bonjour", foo=["bar"])
+
+    def test_json_url(self, httpserver: HTTPServer) -> None:
+        @dataclass
+        class A:
+            hello: Text
+            foo: List[str]
+
+        httpserver.expect_request("/simple.json").respond_with_handler(
+            file_handler("confs/simple.json")
+        )
+
+        assert url(httpserver.url_for("/simple.json"), A) == A(
+            hello="bonjour", foo=["bar"]
+        )
+
+    def test_nested_with_defaults(self):
+        @dataclass
+        class Nested:
+            nested_a: bool = False
+            nested_b: str = field(default="some default value")
+
+        @dataclass
+        class TopLevel:
+            top_a: str
+            top_b: str = field(default="some other value")
+            top_c: Nested = field(
+                default_factory=Nested
+            )  # nested dataclass with a default factory
+
+        config_string = """
+        top_a: "some value"
+        """
+
+        assert loads(config_string, TopLevel, loader=dataconf.YAML) == TopLevel(
+            top_a="some value",
+            top_b="some other value",
+            top_c=Nested(nested_a=False, nested_b="some default value"),
+        )

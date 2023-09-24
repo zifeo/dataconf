@@ -1,3 +1,54 @@
+## v2.2.2 (2023-09-24)
+
+### Fix
+
+- union alternative syntax #112 (#113)
+
+## v2.2.1 (2023-05-26)
+
+### Fix
+
+- for issue with nested dataclasses that have default values #98
+
+## v2.2.0 (2023-05-23)
+
+### Feat
+
+- support StrEnum from python 3.11 (#91)
+- add support fro string enum (#88)
+- dependabot (#69)
+- upgrade deps and switch to ruff (#68)
+
+### Fix
+
+- union and yaml loader fixes (#92)
+- license
+
+## v2.1.3 (2022-12-05)
+
+### Fix
+
+- typing for dict, close #64 (#65)
+
+## v2.1.2 (2022-10-22)
+
+### Fix
+
+- readme
+- remote loading error, close #57
+
+## v2.1.1 (2022-09-16)
+
+### Fix
+
+- dumps close #54 (#55)
+
+## v2.1.0 (2022-07-31)
+
+### Feat
+
+- add yaml source support (#51)
+
 ## v2.0.0 (2022-06-28)
 
 ### Feat
