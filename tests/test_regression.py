@@ -9,6 +9,8 @@ from typing import List
 from typing import Optional
 from typing import Text
 from typing import Union
+import pytest
+import sys
 
 import dataconf
 from dateutil.relativedelta import relativedelta
@@ -173,3 +175,14 @@ class TestParser:
             validate = dataconf.file(f.name, Config)
 
         assert original == validate
+
+    @pytest.mark.skipif(
+        sys.version_info < (3, 10), reason="Test only runs for version 3.10+"
+    )
+    def test_union_alt_syntax_112(self):
+        @dataclass
+        class Borked:
+            foo: str | int
+
+        assert dataconf.dict({"foo": 123}, Borked) == Borked(foo=123)
+        assert dataconf.dict({"foo": "asdf"}, Borked) == Borked(foo="asdf")

@@ -6,6 +6,7 @@ from datetime import datetime
 from enum import Enum
 from enum import IntEnum
 from inspect import isclass
+from types import UnionType
 from typing import Any
 from typing import Dict
 from typing import get_args
@@ -137,7 +138,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             # cannot parse Optional
             return None
 
-    if origin is Union:
+    if origin is Union or origin is UnionType:
         for parse_candidate in args:
             try:
                 return __parse(value, parse_candidate, path, strict, ignore_unexpected)
