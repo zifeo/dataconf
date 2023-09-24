@@ -5,7 +5,6 @@ from datetime import timezone
 from enum import Enum
 from enum import IntEnum
 import os
-import sys
 from typing import Any
 from typing import Dict
 from typing import List
@@ -27,6 +26,7 @@ from dataconf.main import url
 from dateutil.relativedelta import relativedelta
 import pytest
 from pytest_httpserver import HTTPServer
+from dataconf.version import PY311up
 from tests.conftest import file_handler
 
 PARENT_DIR = os.path.normpath(
@@ -211,9 +211,7 @@ class TestParser:
         """
         assert loads(conf_value, A) == A(b=Color.RED)
 
-    @pytest.mark.skipif(
-        sys.version_info < (3, 11), reason="Test only runs for version 3.11+"
-    )
+    @pytest.mark.skipif(not PY311up, reason="Test only runs for version 3.11+")
     def test_strenum_class(self) -> None:
         from enum import StrEnum
 

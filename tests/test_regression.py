@@ -10,10 +10,11 @@ from typing import Optional
 from typing import Text
 from typing import Union
 import pytest
-import sys
 
 import dataconf
 from dateutil.relativedelta import relativedelta
+
+from dataconf.version import PY310up
 
 PARENT_DIR = os.path.normpath(
     os.path.dirname(os.path.realpath(__file__)) + os.sep + os.pardir
@@ -176,9 +177,7 @@ class TestParser:
 
         assert original == validate
 
-    @pytest.mark.skipif(
-        sys.version_info < (3, 10), reason="Test only runs for version 3.10+"
-    )
+    @pytest.mark.skipif(not PY310up, reason="Test only runs for version 3.10+")
     def test_union_alt_syntax_112(self):
         @dataclass
         class Borked:
@@ -186,3 +185,12 @@ class TestParser:
 
         assert dataconf.dict({"foo": 123}, Borked) == Borked(foo=123)
         assert dataconf.dict({"foo": "asdf"}, Borked) == Borked(foo="asdf")
+
+        @dataclass
+        class BorkedOpt:
+            foo: Optional[str | int]
+
+        assert dataconf.dict({"foo": None}, BorkedOpt) == BorkedOpt(foo=None)
+        assert dataconf.dict({}, BorkedOpt) == BorkedOpt(foo=None)
+        assert dataconf.dict({"foo": 123}, BorkedOpt) == BorkedOpt(foo=123)
+        assert dataconf.dict({"foo": "asdf"}, BorkedOpt) == BorkedOpt(foo="asdf")
