@@ -415,16 +415,16 @@ wcwidth = "*"
 
 [[package]]
 name = "pyhocon"
-version = "0.3.59"
+version = "0.3.60"
 description = "HOCON parser for Python"
 optional = false
 python-versions = "*"
 files = [
-    {file = "pyhocon-0.3.59.tar.gz", hash = "sha256:bb0eee59b57ecea5c30d14efc7ee7e55c935d58f03025ccdfc49237e920aa48c"},
+    {file = "pyhocon-0.3.60.tar.gz", hash = "sha256:ea18520ea126981e5320a72281f1a5fef2c27923f70cc54e1bd241c26525fd4b"},
 ]
 
 [package.dependencies]
-pyparsing = ">=2.0,<3.0"
+pyparsing = {version = ">=2,<4", markers = "python_version >= \"3.0\""}
 
 [package.extras]
 duration = ["python-dateutil (>=2.8.0)"]
@@ -718,4 +718,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "50772d77161946c236d251ff6d46a54c4e5e529086d033e1f6f4fcbea833b161"
+content-hash = "dd91d5ae7cf03a3cf50ffb16008d68d6cb27a667fd31f2c67b2d98e4d443e2ea"
