@@ -7,7 +7,7 @@ from enum import Enum
 from enum import IntEnum
 from inspect import isclass
 
-from typing import Any
+from typing import Any, Literal
 from typing import Dict
 from typing import get_args
 from typing import get_origin
@@ -199,6 +199,13 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             return clazz.__getattr__(value)
 
         raise TypeConfigException(f"expected str or int at {path}, got {type(value)}")
+
+    if get_origin(clazz) is (Literal):
+        if value in args:
+            return value
+        raise TypeConfigException(
+            f"expected one of {', '.join(map(str, args))} at {path}, got {value}"
+        )
 
     if clazz is datetime:
         dt = __parse_type(value, clazz, path, isinstance(value, str))

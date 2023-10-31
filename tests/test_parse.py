@@ -5,7 +5,7 @@ from datetime import timezone
 from enum import Enum
 from enum import IntEnum
 import os
-from typing import Any
+from typing import Any, Literal
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -712,3 +712,38 @@ class TestParser:
             top_b="some other value",
             top_c=Nested(nested_a=False, nested_b="some default value"),
         )
+
+    def test_literals(self):
+        @dataclass
+        class Something:
+            literal: Literal["a", "b", 3] = field(default="a")
+
+        config_string = """
+        literal: "a"
+        """
+
+        assert loads(config_string, Something, loader=dataconf.YAML) == Something(
+            literal="a"
+        )
+
+        config_string = """
+        literal: "b"
+        """
+
+        assert loads(config_string, Something, loader=dataconf.YAML) == Something(
+            literal="b"
+        )
+
+        config_string = """
+        literal: 3
+        """
+
+        assert loads(config_string, Something, loader=dataconf.YAML) == Something(
+            literal=3
+        )
+
+        with pytest.raises(TypeConfigException):
+            config_string = """
+            literal: "d"
+            """
+            loads(config_string, Something, loader=dataconf.YAML)
