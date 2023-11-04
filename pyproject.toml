@@ -13,6 +13,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11"
 ]
 keywords = [
     "configuration",
@@ -51,5 +54,5 @@ version_files = [
 ]
 
 [build-system]
-requires = ["poetry"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=1.1.0"]
+build-backend = "poetry.core.masonry.api"
