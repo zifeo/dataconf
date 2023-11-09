@@ -6,6 +6,7 @@ from datetime import datetime
 from enum import Enum
 from enum import IntEnum
 from inspect import isclass
+from pathlib import Path
 
 from typing import Any, Literal
 from typing import Dict
@@ -199,6 +200,9 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             return clazz.__getattr__(value)
 
         raise TypeConfigException(f"expected str or int at {path}, got {type(value)}")
+
+    if isclass(clazz) and issubclass(clazz, Path):
+        return clazz.__call__(value)
 
     if get_origin(clazz) is (Literal):
         if value in args:

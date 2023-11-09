@@ -5,6 +5,7 @@ from datetime import timezone
 from enum import Enum
 from enum import IntEnum
 import os
+from pathlib import Path
 from typing import Any, Literal
 from typing import Dict
 from typing import List
@@ -268,6 +269,16 @@ class TestParser:
         b = 2
         """
         assert loads(conf_value, A) == A(b=IntColor.GREEN)
+
+    def test_path(self) -> None:
+        @dataclass
+        class P:
+            p: Path
+
+        conf_name = """
+        p = /tmp/test.yaml
+        """
+        assert loads(conf_name, P) == P(p=Path("/tmp/test.yaml"))
 
     def test_datetime(self) -> None:
         @dataclass
