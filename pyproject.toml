@@ -42,7 +42,7 @@ pytest = "^7.4.2"
 pre-commit = ">=2.21,<4.0"
 commitizen = ">=2.42.1,<4.0.0"
 pytest-httpserver = "^1.0.8"
-ruff = ">=0.0.247,<0.1.4"
+ruff = ">=0.0.247,<0.1.7"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
