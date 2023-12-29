@@ -171,12 +171,9 @@ class TestParser:
 
         original = Config("test_dump")
 
-        temporary_file = tempfile.NamedTemporaryFile()
-        temporary_file_name = temporary_file.name
-        temporary_file.close()
-
-        dataconf.dump(temporary_file_name, original, out="yaml")
-        validate = dataconf.file(temporary_file_name, Config)
+        with tempfile.NamedTemporaryFile(delete=False) as tfile:
+            dataconf.dump(tfile.name, original, out="yaml")
+            validate = dataconf.file(tfile.name, Config)
 
         assert original == validate
 
