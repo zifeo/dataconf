@@ -142,9 +142,9 @@ class TestParser:
         class A:
             url: str
 
-        os.environ["p_url"] = "https://github.com/zifeo/dataconf"
-        assert dataconf.env("p", A) == A(url="https://github.com/zifeo/dataconf")
-        os.environ.pop("p_url")
+        os.environ["P_URL"] = "https://github.com/zifeo/dataconf"
+        assert dataconf.env("P", A) == A(url="https://github.com/zifeo/dataconf")
+        os.environ.pop("P_URL")
 
     def test_env_var_cast_35(self) -> None:
         @dataclass
@@ -171,9 +171,12 @@ class TestParser:
 
         original = Config("test_dump")
 
-        with tempfile.NamedTemporaryFile() as f:
-            dataconf.dump(f.name, original, out="yaml")
-            validate = dataconf.file(f.name, Config)
+        temporary_file = tempfile.NamedTemporaryFile()
+        temporary_file_name = temporary_file.name
+        temporary_file.close()
+
+        dataconf.dump(temporary_file_name, original, out="yaml")
+        validate = dataconf.file(temporary_file_name, Config)
 
         assert original == validate
 
