@@ -164,16 +164,21 @@ class TestParser:
             hello=None, world="monde", float_num=1.3, int_num=2, bool_var=True
         )
 
-    def test_dump_fail_54(self):
+    @pytest.fixture
+    def named_temporary_file(self):
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        yield tfile
+        tfile.close()
+
+    def test_dump_fail_54(self, named_temporary_file):
         @dataclass
         class Config:
             experiment_name: str
 
         original = Config("test_dump")
 
-        with tempfile.NamedTemporaryFile(delete=False) as tfile:
-            dataconf.dump(tfile.name, original, out="yaml")
-            validate = dataconf.file(tfile.name, Config)
+        dataconf.dump(named_temporary_file.name, original, out="yaml")
+        validate = dataconf.file(named_temporary_file.name, Config)
 
         assert original == validate
 
