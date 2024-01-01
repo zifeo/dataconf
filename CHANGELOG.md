@@ -1,3 +1,14 @@
+## v2.4.0 (2024-01-01)
+
+### Feat
+
+- update pre-commit
+- add support for `pathlib.Path` type (#126)
+
+### Fix
+
+- fix failing tests (#128)
+
 ## v2.3.0 (2023-10-31)
 
 ### Feat
