@@ -33,7 +33,7 @@ dataconf = 'dataconf.cli:run'
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pyhocon = "0.3.60"
+pyhocon = "0.3.59"
 python-dateutil = "^2.8.2"
 PyYAML = "^6.0.1"
 pyparsing = "2.4.7"
