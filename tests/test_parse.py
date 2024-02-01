@@ -312,9 +312,7 @@ class TestParser:
         conf = """
         b = "P123DT4H5M6S"
         """
-        assert loads(conf, A) == A(
-            b=timedelta(days=123, hours=4, minutes=5, seconds=6)
-        )
+        assert loads(conf, A) == A(b=timedelta(days=123, hours=4, minutes=5, seconds=6))
 
     def test_bad_duration(self) -> None:
         @dataclass

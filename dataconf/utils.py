@@ -228,7 +228,9 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         try:
             duration = parse_duration(dt)
             if isinstance(duration, Duration):
-                raise ParseException("The ISO 8601 duration provided can not contain years or months")
+                raise ParseException(
+                    "The ISO 8601 duration provided can not contain years or months"
+                )
             return duration
         except ValueError as e:
             raise ParseException(
