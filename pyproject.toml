@@ -40,7 +40,7 @@ pyparsing = "2.4.7"
 isodate = "^0.6.1"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.4.2"
+pytest = ">=7.4.2,<9.0.0"
 pre-commit = ">=2.21,<4.0"
 commitizen = ">=2.42.1,<4.0.0"
 pytest-httpserver = "^1.0.8"
