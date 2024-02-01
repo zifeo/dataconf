@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
+from datetime import timedelta
 from datetime import timezone
 from enum import Enum
 from enum import IntEnum
@@ -299,6 +300,51 @@ class TestParser:
 
         conf = """
         b = "1997-07-16 19:20:0701:00"
+        """
+        with pytest.raises(ParseException):
+            assert loads(conf, A)
+
+    def test_duration(self) -> None:
+        @dataclass
+        class A:
+            b: timedelta
+
+        conf = """
+        b = "P123DT4H5M6S"
+        """
+        assert loads(conf, A) == A(
+            b=timedelta(days=123, hours=4, minutes=5, seconds=6)
+        )
+
+    def test_bad_duration(self) -> None:
+        @dataclass
+        class A:
+            b: timedelta
+
+        conf = """
+        b = "P123D4H5M6S"
+        """
+        with pytest.raises(ParseException):
+            assert loads(conf, A)
+
+    def test_unsupported_duration_with_year(self) -> None:
+        @dataclass
+        class A:
+            b: timedelta
+
+        conf = """
+        b = "P1Y"
+        """
+        with pytest.raises(ParseException):
+            assert loads(conf, A)
+
+    def test_unsupported_duration_with_month(self) -> None:
+        @dataclass
+        class A:
+            b: timedelta
+
+        conf = """
+        b = "P1M"
         """
         with pytest.raises(ParseException):
             assert loads(conf, A)
