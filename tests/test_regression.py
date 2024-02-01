@@ -2,6 +2,7 @@ from abc import ABCMeta
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
+from datetime import timedelta
 import os
 import tempfile
 from typing import Dict
@@ -45,6 +46,7 @@ class TestParser:
             dash_to_underscore: bool
             float_num: float
             iso_datetime: datetime
+            iso_duration: timedelta
             list_data: List[Text]
             nested: Nested
             nested_list: List[Nested]
@@ -63,6 +65,7 @@ class TestParser:
             dash_to_underscore=True,
             float_num=2.2,
             iso_datetime=datetime(2000, 1, 1, 20),
+            iso_duration=timedelta(days=123, hours=4, minutes=5, seconds=6),
             list_data=["a", "b"],
             nested=Nested(a="test", b=1),
             nested_list=[Nested(a="test1", b=2.5)],
