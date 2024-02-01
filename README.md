@@ -40,6 +40,7 @@ str_name = ${?HOME}
 dash-to-underscore = true
 float_num = 2.2
 iso_datetime = "2000-01-01T20:00:00"
+iso_duration = "P123DT4H5M6S"
 # this is a comment
 list_data = [
     a
@@ -87,6 +88,7 @@ class Config:
     dash_to_underscore: bool
     float_num: float
     iso_datetime: datetime
+    iso_duration: timedelta
     list_data: List[Text]
     nested: Nested
     nested_list: List[Nested]
