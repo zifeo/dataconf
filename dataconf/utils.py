@@ -3,6 +3,7 @@ from dataclasses import asdict
 from dataclasses import fields
 from dataclasses import is_dataclass
 from datetime import datetime
+from datetime import timedelta
 from enum import Enum
 from enum import IntEnum
 from inspect import isclass
@@ -28,6 +29,8 @@ from dateutil.relativedelta import relativedelta
 from pyhocon import ConfigFactory
 from pyhocon.config_tree import ConfigList
 from pyhocon.config_tree import ConfigTree
+from isodate import parse_duration
+from isodate import Duration
 import pyparsing
 
 from dataconf.version import PY310up
@@ -215,6 +218,20 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         dt = __parse_type(value, clazz, path, isinstance(value, str))
         try:
             return isoparse(dt)
+        except ValueError as e:
+            raise ParseException(
+                f"expected type {clazz} at {path}, cannot parse due to {e}"
+            )
+
+    if clazz is timedelta:
+        dt = __parse_type(value, clazz, path, isinstance(value, str))
+        try:
+            duration = parse_duration(dt)
+            if isinstance(duration, Duration):
+                raise ParseException(
+                    "The ISO 8601 duration provided can not contain years or months"
+                )
+            return duration
         except ValueError as e:
             raise ParseException(
                 f"expected type {clazz} at {path}, cannot parse due to {e}"
