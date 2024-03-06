@@ -200,8 +200,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         elif issubclass(clazz, str):
             return clazz(value)
         elif isinstance(value, str):
-            return clazz.__getattr__(value)
-
+            return clazz.__getitem__(value)
         raise TypeConfigException(f"expected str or int at {path}, got {type(value)}")
 
     if isclass(clazz) and issubclass(clazz, Path):
