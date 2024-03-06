@@ -33,11 +33,11 @@ dataconf = 'dataconf.cli:run'
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pyhocon = "0.3.59"
 python-dateutil = "^2.8.2"
 PyYAML = "^6.0.1"
-pyparsing = "2.4.7"
 isodate = "^0.6.1"
+pyhocon = "^0.3.60"
+pyparsing = "^3.1.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.4.2,<9.0.0"
