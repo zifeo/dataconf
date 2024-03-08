@@ -1,3 +1,8 @@
+## v3.0.0 (2024-03-08)
+
+
+- update pyparsing and pyhocon (#145)
+
 ## v2.5.0 (2024-02-01)
 
 ### Feat
