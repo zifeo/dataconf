@@ -36,7 +36,7 @@ class TestMulti:
         class A:
             a: N
 
-        assert multi.string("a { b = 1\nc = 2 }").string("a { c = 3\nd = 4 }").on(
+        assert multi.string("a { b = 1\nc = 2 }").string("a { c = 3 \nd = 4 }").on(
             A
         ) == A(a=N(b=1, c=3, d=4))
 
