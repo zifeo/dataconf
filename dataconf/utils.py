@@ -8,8 +8,6 @@ from enum import Enum
 from enum import IntEnum
 from inspect import isclass
 from pathlib import Path
-from itertools import chain
-from itertools import repeat
 
 from typing import Any, Literal
 from typing import Dict
@@ -137,11 +135,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
                 raise MissingTypeException(
                     "expected one type since ellipsis is used: Tuple[?, ...]"
                 )
-            _args = (
-                args
-                if not has_ellipsis
-                else list(chain([args[0]], repeat(args[0], len(value) - 1)))
-            )
+            _args = args if not has_ellipsis else [args[0]] * len(value)
             if len(value) > 0 and len(value) != len(_args):
                 raise MalformedConfigException(
                     "number of provided values does not match expected number of values for tuple."
