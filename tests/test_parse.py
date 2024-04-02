@@ -12,6 +12,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Text
+from typing import Tuple
 from typing import Union
 
 import dataconf
@@ -110,6 +111,19 @@ class TestParser:
         ]
         """
         assert loads(conf, A) == A(a=["test"])
+
+    def test_tuple(self) -> None:
+        @dataclass
+        class A:
+            a: Tuple[str, timedelta]
+
+        conf = """
+        a = [
+            test,
+            P1D
+        ]
+        """
+        assert loads(conf, A) == A(a=("test", timedelta(days=1)))
 
     def test_boolean(self) -> None:
         @dataclass

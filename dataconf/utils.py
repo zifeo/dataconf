@@ -124,6 +124,17 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             ]
         return None
 
+    if origin is tuple:
+        if value is not None:
+            if len(value) != len(args):
+                raise MalformedConfigException(
+                    "number of provided values does not match expected number of values for tuple."
+                )
+            return tuple(
+                __parse(v, arg, f"{path}[]", strict, ignore_unexpected)
+                for v, arg in zip(value, args)
+            )
+
     if origin is dict:
         if len(args) != 2:
             raise MissingTypeException(
