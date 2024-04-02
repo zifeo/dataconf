@@ -12,6 +12,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Text
+from typing import Tuple
 from typing import Union
 
 import dataconf
@@ -102,14 +103,32 @@ class TestParser:
     def test_list(self) -> None:
         @dataclass
         class A:
-            a: List[Text]
+            b: List[Text]
 
         conf = """
-        a = [
+        b = [
             test
         ]
         """
-        assert loads(conf, A) == A(a=["test"])
+        assert loads(conf, A) == A(b=["test"])
+
+        with pytest.raises(MalformedConfigException):
+            loads("b = null", A)
+
+    def test_tuple(self) -> None:
+        @dataclass
+        class A:
+            b: Tuple[str, timedelta]
+
+        conf = """
+        b = [
+            test,
+            P1D
+        ]
+        """
+        assert loads(conf, A) == A(b=("test", timedelta(days=1)))
+        with pytest.raises(MalformedConfigException):
+            loads("b = null", A)
 
     def test_boolean(self) -> None:
         @dataclass
@@ -368,6 +387,39 @@ class TestParser:
         conf = ""
         assert loads(conf, A) == A(b=[])
 
+    def test_empty_tuple(self) -> None:
+        @dataclass
+        class A:
+            b: Tuple[str, ...] = field(default_factory=tuple)
+
+        conf = ""
+        assert loads(conf, A) == A(b=())
+
+    def test_fixed_length_tuple(self) -> None:
+        @dataclass
+        class A:
+            b: Tuple[int, str, timedelta]
+
+        conf = """
+        {
+            "b": [1, "2", "P1D"]
+        }
+        """
+        assert loads(conf, A) == A(b=(1, "2", timedelta(days=1)))
+
+    def test_fixed_length_mismatch(self) -> None:
+        @dataclass
+        class A:
+            b: Tuple[int, str, timedelta]
+
+        conf = """
+        {
+            "b": [1, "2"]
+        }
+        """
+        with pytest.raises(MalformedConfigException):
+            loads(conf, A)
+
     def test_json(self) -> None:
         @dataclass
         class A:
@@ -399,6 +451,9 @@ class TestParser:
 
         with pytest.raises(MissingTypeException):
             loads("", List)
+
+        with pytest.raises(MissingTypeException):
+            loads("", Tuple)
 
     def test_missing_field(self) -> None:
         @dataclass
@@ -680,6 +735,33 @@ class TestParser:
         }
         """
         assert loads(conf, Base).foo == [{"a": 1}, [2]]
+
+    def test_tuple_any(self) -> None:
+        @dataclass
+        class Base:
+            foo: Tuple[Any, ...]
+
+        conf = """
+        {
+            foo: [
+                1
+                "b"
+            ]
+        }
+        """
+        assert loads(conf, Base).foo == (1, "b")
+
+        conf = """
+        {
+            foo: [
+                {a: 1}
+                [
+                    2
+                ]
+            ]
+        }
+        """
+        assert loads(conf, Base).foo == ({"a": 1}, [2])
 
     def test_yaml(self) -> None:
         @dataclass

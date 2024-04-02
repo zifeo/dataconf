@@ -113,16 +113,41 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
     args = get_args(clazz)
 
     if origin is list:
+        if value is None:
+            raise MalformedConfigException(f"expected list at {path} but received None")
+
         if len(args) != 1:
             raise MissingTypeException("expected list with type information: List[?]")
 
-        if value is not None:
-            parse_candidate = args[0]
-            return [
-                __parse(v, parse_candidate, f"{path}[]", strict, ignore_unexpected)
-                for v in value
-            ]
-        return None
+        parse_candidate = args[0]
+        return [
+            __parse(v, parse_candidate, f"{path}[]", strict, ignore_unexpected)
+            for v in value
+        ]
+
+    if origin is tuple:
+        if value is None:
+            raise MalformedConfigException(
+                f"expected tuple at {path} but received None"
+            )
+
+        if len(args) < 1:
+            raise MissingTypeException("expected tuple with type information: Tuple[?]")
+
+        has_ellipsis = args[-1] == Ellipsis
+        if has_ellipsis and len(args) != 2:
+            raise MissingTypeException(
+                "expected one type since ellipsis is used: Tuple[?, ...]"
+            )
+        _args = args if not has_ellipsis else [args[0]] * len(value)
+        if len(value) > 0 and len(value) != len(_args):
+            raise MalformedConfigException(
+                "number of provided values does not match expected number of values for tuple."
+            )
+        return tuple(
+            __parse(v, arg, f"{path}[]", strict, ignore_unexpected)
+            for v, arg in zip(value, _args)
+        )
 
     if origin is dict:
         if len(args) != 2:

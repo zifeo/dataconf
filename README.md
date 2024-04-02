@@ -29,9 +29,9 @@ pre-commit install
 ```python
 import os
 from dataclasses import dataclass, field
-from typing import List, Dict, Text, Union
+from typing import List, Dict, Text, Union, Tuple
 from dateutil.relativedelta import relativedelta
-from datetime import datetime
+from datetime import datetime, timedelta
 import dataconf
 
 conf = """
@@ -41,6 +41,15 @@ dash-to-underscore = true
 float_num = 2.2
 iso_datetime = "2000-01-01T20:00:00"
 iso_duration = "P123DT4H5M6S"
+variable_length_tuple_data = [
+    1
+    2
+    3
+]
+tuple_data = [
+    a
+    P1D
+]
 # this is a comment
 list_data = [
     a
@@ -89,6 +98,8 @@ class Config:
     float_num: float
     iso_datetime: datetime
     iso_duration: timedelta
+    variable_length_tuple_data: Tuple[int, ...]
+    tuple_data: Tuple[Text, timedelta]
     list_data: List[Text]
     nested: Nested
     nested_list: List[Nested]
@@ -101,17 +112,21 @@ class Config:
 
 print(dataconf.string(conf, Config))
 # Config(
-#   str_name='/users/root',
+#   str_name='/users/root/',
 #   dash_to_underscore=True,
 #   float_num=2.2,
+#   iso_datetime=datetime.datetime(2000, 1, 1, 20, 0),
+#   iso_duration=datetime.timedelta(days=123, seconds=14706),
+#   variable_length_tuple_data=(1,2,3),
+#   tuple_data=('a', datetime.timedelta(days=1)),
 #   list_data=['a', 'b'],
-#   nested=Nested(a='test'),
+#   nested=Nested(a='test', b=1),
 #   nested_list=[Nested(a='test1', b=2.5)],
-#   duration=relativedelta(seconds=+2), 
-#   union=1, 
-#   people=Person(name='Thailand'), 
+#   duration=relativedelta(seconds=+2),
+#   union=1,
+#   people=Person(name='Thailand'),
 #   zone=Zone(area_code=42),
-#   default='hello', 
+#   default='hello',
 #   default_factory={}
 # )
 

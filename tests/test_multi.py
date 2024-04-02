@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import os
-from typing import Text
+from typing import Text, Tuple
+from datetime import timedelta
 import urllib
 
 from dataconf import multi
@@ -12,10 +13,14 @@ class TestMulti:
         @dataclass
         class A:
             a: Text
+            b: Tuple[Text, timedelta]
+            c: Tuple[int, ...]
 
-        expected = A(a="test")
-        assert multi.string("a = test").on(A) == expected
-        assert multi.dict({"a": "test"}).on(A) == expected
+        expected = A(a="test", b=("P1D", timedelta(days=1)), c=(1,))
+        assert multi.string("a = test\nb = [P1D\nP1D]\nc = [1]").on(A) == expected
+        assert (
+            multi.dict({"a": "test", "b": ("P1D", "P1D"), "c": (1,)}).on(A) == expected
+        )
 
     def test_chain(self) -> None:
         @dataclass
