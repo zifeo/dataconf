@@ -41,6 +41,11 @@ dash-to-underscore = true
 float_num = 2.2
 iso_datetime = "2000-01-01T20:00:00"
 iso_duration = "P123DT4H5M6S"
+variable_length_tuple_data = [
+    1
+    2
+    3
+]
 tuple_data = [
     a
     P1D
@@ -93,6 +98,7 @@ class Config:
     float_num: float
     iso_datetime: datetime
     iso_duration: timedelta
+    variable_length_tuple_data: Tuple[int, ...]
     tuple_data: Tuple[Text, timedelta]
     list_data: List[Text]
     nested: Nested
@@ -111,6 +117,7 @@ print(dataconf.string(conf, Config))
 #   float_num=2.2,
 #   iso_datetime=datetime.datetime(2000, 1, 1, 20, 0),
 #   iso_duration=datetime.timedelta(days=123, seconds=14706),
+#   variable_length_tuple_data=(1,2,3),
 #   tuple_data=('a', datetime.timedelta(days=1)),
 #   list_data=['a', 'b'],
 #   nested=Nested(a='test', b=1),
