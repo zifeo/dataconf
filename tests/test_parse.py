@@ -111,7 +111,9 @@ class TestParser:
         ]
         """
         assert loads(conf, A) == A(b=["test"])
-        assert loads("b = null", A) == A(b=None)
+
+        with pytest.raises(MalformedConfigException):
+            loads("b = null", A)
 
     def test_tuple(self) -> None:
         @dataclass
@@ -125,7 +127,8 @@ class TestParser:
         ]
         """
         assert loads(conf, A) == A(b=("test", timedelta(days=1)))
-        assert loads("b = null", A) == A(b=None)
+        with pytest.raises(MalformedConfigException):
+            loads("b = null", A)
 
     def test_boolean(self) -> None:
         @dataclass
