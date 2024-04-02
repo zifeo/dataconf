@@ -103,27 +103,29 @@ class TestParser:
     def test_list(self) -> None:
         @dataclass
         class A:
-            a: List[Text]
+            b: List[Text]
 
         conf = """
-        a = [
+        b = [
             test
         ]
         """
-        assert loads(conf, A) == A(a=["test"])
+        assert loads(conf, A) == A(b=["test"])
+        assert loads("b = null", A) == A(b=None)
 
     def test_tuple(self) -> None:
         @dataclass
         class A:
-            a: Tuple[str, timedelta]
+            b: Tuple[str, timedelta]
 
         conf = """
-        a = [
+        b = [
             test,
             P1D
         ]
         """
-        assert loads(conf, A) == A(a=("test", timedelta(days=1)))
+        assert loads(conf, A) == A(b=("test", timedelta(days=1)))
+        assert loads("b = null", A) == A(b=None)
 
     def test_boolean(self) -> None:
         @dataclass
@@ -446,6 +448,9 @@ class TestParser:
 
         with pytest.raises(MissingTypeException):
             loads("", List)
+
+        with pytest.raises(MissingTypeException):
+            loads("", Tuple)
 
     def test_missing_field(self) -> None:
         @dataclass
