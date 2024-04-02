@@ -8,6 +8,8 @@ from enum import Enum
 from enum import IntEnum
 from inspect import isclass
 from pathlib import Path
+from itertools import chain
+from itertools import repeat
 
 from typing import Any, Literal
 from typing import Dict
@@ -126,13 +128,27 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
 
     if origin is tuple:
         if value is not None:
-            if len(value) != len(args):
+            if len(args) < 1:
+                raise MissingTypeException(
+                    "expected tuple with type information: Tuple[?]"
+                )
+            has_ellipsis = args[-1] == Ellipsis
+            if has_ellipsis and len(args) != 2:
+                raise MissingTypeException(
+                    "expected one type since ellipsis is used: Tuple[?, ...]"
+                )
+            _args = (
+                args
+                if not has_ellipsis
+                else list(chain([args[0]], repeat(args[0], len(value) - 1)))
+            )
+            if len(value) > 0 and len(value) != len(_args):
                 raise MalformedConfigException(
                     "number of provided values does not match expected number of values for tuple."
                 )
             return tuple(
                 __parse(v, arg, f"{path}[]", strict, ignore_unexpected)
-                for v, arg in zip(value, args)
+                for v, arg in zip(value, _args)
             )
 
     if origin is dict:

@@ -382,6 +382,39 @@ class TestParser:
         conf = ""
         assert loads(conf, A) == A(b=[])
 
+    def test_empty_tuple(self) -> None:
+        @dataclass
+        class A:
+            b: Tuple[str, ...] = field(default_factory=tuple)
+
+        conf = ""
+        assert loads(conf, A) == A(b=())
+
+    def test_fixed_length_tuple(self) -> None:
+        @dataclass
+        class A:
+            b: Tuple[int, str, timedelta]
+
+        conf = """
+        {
+            "b": [1, "2", "P1D"]
+        }
+        """
+        assert loads(conf, A) == A(b=(1, "2", timedelta(days=1)))
+
+    def test_fixed_length_mismatch(self) -> None:
+        @dataclass
+        class A:
+            b: Tuple[int, str, timedelta]
+
+        conf = """
+        {
+            "b": [1, "2"]
+        }
+        """
+        with pytest.raises(MalformedConfigException):
+            loads(conf, A)
+
     def test_json(self) -> None:
         @dataclass
         class A:
@@ -694,6 +727,33 @@ class TestParser:
         }
         """
         assert loads(conf, Base).foo == [{"a": 1}, [2]]
+
+    def test_tuple_any(self) -> None:
+        @dataclass
+        class Base:
+            foo: Tuple[Any, ...]
+
+        conf = """
+        {
+            foo: [
+                1
+                "b"
+            ]
+        }
+        """
+        assert loads(conf, Base).foo == (1, "b")
+
+        conf = """
+        {
+            foo: [
+                {a: 1}
+                [
+                    2
+                ]
+            ]
+        }
+        """
+        assert loads(conf, Base).foo == ({"a": 1}, [2])
 
     def test_yaml(self) -> None:
         @dataclass

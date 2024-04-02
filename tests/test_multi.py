@@ -14,10 +14,13 @@ class TestMulti:
         class A:
             a: Text
             b: Tuple[Text, timedelta]
+            c: Tuple[int, ...]
 
-        expected = A(a="test", b=("P1D", timedelta(days=1)))
-        assert multi.string("a = test\nb = [P1D\nP1D]").on(A) == expected
-        assert multi.dict({"a": "test", "b": ("P1D", "P1D")}).on(A) == expected
+        expected = A(a="test", b=("P1D", timedelta(days=1)), c=(1,))
+        assert multi.string("a = test\nb = [P1D\nP1D]\nc = [1]").on(A) == expected
+        assert (
+            multi.dict({"a": "test", "b": ("P1D", "P1D"), "c": (1,)}).on(A) == expected
+        )
 
     def test_chain(self) -> None:
         @dataclass
