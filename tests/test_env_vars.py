@@ -1,4 +1,4 @@
-from dataconf.exceptions import EnvListOrderException
+from dataconf.exceptions import EnvListFormatException, EnvListOrderException
 from dataconf.exceptions import ParseException
 from dataconf.utils import __env_vars_parse as env_vars_parse
 import pytest
@@ -63,6 +63,37 @@ class TestEnvVars:
             "P_A__B_2": "2",
         }
         with pytest.raises(EnvListOrderException):
+            env_vars_parse("P", env)
+
+    def test_ls_obj(self) -> None:
+        env = {
+            "P_A_0__A": "1",
+            "P_A_1__A": "2",
+        }
+        assert env_vars_parse("P", env) == dict(a=[dict(a="1"), dict(a="2")])
+
+        env = {
+            "P_A_0__A": "1",
+            "P_A_0__B": "2",
+        }
+        assert env_vars_parse("P", env) == dict(a=[dict(a="1", b="2")])
+
+        env = {
+            "P_A_0__A": "1",
+            "P_A_0__B": "2",
+            "P_A_1__A": "3",
+            "P_A_1__B": "4",
+        }
+        assert env_vars_parse("P", env) == dict(
+            a=[dict(a="1", b="2"), dict(a="3", b="4")]
+        )
+
+    def test_ls_wrong_obj(self) -> None:
+        env = {
+            "P_A_0_A": "1",
+            "P_A_1_A": "2",
+        }
+        with pytest.raises(EnvListFormatException):
             env_vars_parse("P", env)
 
     def test_number(self) -> None:

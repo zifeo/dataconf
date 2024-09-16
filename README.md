@@ -8,7 +8,7 @@ hocon/json/yaml/properties/env-vars/dict/cli support.
 
 ## Getting started
 
-Requires at least Python 3.8.
+Requires at least Python 3.9.
 
 ```bash
 # pypi
@@ -77,11 +77,11 @@ zone {
 
 class AbstractBaseClass:
     pass
-    
+
 @dataclass
 class Person(AbstractBaseClass):
     name: Text
-        
+
 @dataclass
 class Zone(AbstractBaseClass):
     area_code: int

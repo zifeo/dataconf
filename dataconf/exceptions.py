@@ -34,6 +34,12 @@ class EnvListOrderException(Exception):
     pass
 
 
+class EnvListFormatException(Exception):
+    """Format exception."""
+
+    pass
+
+
 class ParseException(Exception):
     """Parsing exception."""
 
