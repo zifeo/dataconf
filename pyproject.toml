@@ -12,10 +12,10 @@ include = [
 classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11"
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12"
 ]
 keywords = [
     "configuration",
@@ -32,19 +32,19 @@ keywords = [
 dataconf = 'dataconf.cli:run'
 
 [tool.poetry.dependencies]
-python = "^3.8"
-python-dateutil = "^2.8.2"
-PyYAML = "^6.0.1"
+python = "^3.9"
+python-dateutil = "^2.9.0.post0"
+PyYAML = "^6.0.2"
 isodate = "^0.6.1"
 pyhocon = "^0.3.61"
-pyparsing = "^3.1.2"
+pyparsing = "^3.1.4"
 
 [tool.poetry.group.dev.dependencies]
-pytest = ">=7.4.2,<9.0.0"
-pre-commit = ">=2.21,<4.0"
-commitizen = ">=2.42.1,<4.0.0"
-pytest-httpserver = "^1.0.8"
-ruff = ">=0.5.0,<0.7.0"
+pytest = ">=8.3.3"
+pre-commit = ">=3.8.0"
+commitizen = ">=3.29.0"
+pytest-httpserver = "^1.1.0"
+ruff = ">=0.6.5"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
