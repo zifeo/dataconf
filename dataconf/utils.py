@@ -17,7 +17,7 @@ from typing import List
 from typing import Type
 from typing import Union
 
-from dataconf.exceptions import AmbiguousSubclassException
+from dataconf.exceptions import AmbiguousSubclassException, EnvListFormatException
 from dataconf.exceptions import EnvListOrderException
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
@@ -333,6 +333,8 @@ def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
         if len(p) == 1:
             # []x
             if isinstance(focus, list):
+                if not isinstance(p[0], int):
+                    raise EnvListFormatException
                 if p[0] != len(focus):
                     raise EnvListOrderException
                 focus.append(v)
@@ -346,9 +348,8 @@ def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
             if p[0] not in focus:
                 # []{x}
                 if isinstance(focus, list):
-                    if p[0] != len(focus):
-                        raise EnvListOrderException
-                    focus.append({})
+                    if p[0] == len(focus):
+                        focus.append({})
                 # {}{x}
                 else:
                     focus[p[0]] = {}
