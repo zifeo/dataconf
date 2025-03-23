@@ -104,7 +104,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         unexpected_keys = value.keys() - {renamings.get(k, k) for k in fs.keys()}
         if len(unexpected_keys) > 0 and not ignore_unexpected:
             raise UnexpectedKeysException(
-                f"unexpected key(s) \"{', '.join(unexpected_keys)}\" detected for type {clazz} at {path}"
+                f'unexpected key(s) "{", ".join(unexpected_keys)}" detected for type {clazz} at {path}'
             )
 
         return clazz(**fs)

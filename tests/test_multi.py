@@ -67,3 +67,14 @@ class TestMulti:
 
         with pytest.raises(urllib.error.URLError):
             multi.url("http://doesnotexists/simple.yaml").on(A)
+
+    def test_non_existent_file(self) -> None:
+        @dataclass
+        class A:
+            value: int = 42
+
+        with pytest.raises(FileNotFoundError):
+            multi.file("non_existent.yaml").on(A)
+
+        result = multi.file("non_existent.yaml", allow_missing=True).on(A)
+        assert result == A(value=42)

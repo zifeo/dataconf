@@ -71,7 +71,16 @@ class Multi:
         conf = ConfigFactory.parse_URL(uri, timeout=timeout, required=True)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
-    def file(self, path: str, loader: Optional[str] = None, **kwargs) -> "Multi":
+    def file(
+        self,
+        path: str,
+        loader: Optional[str] = None,
+        allow_missing: bool = False,
+        **kwargs,
+    ) -> "Multi":
+        if allow_missing and not os.path.exists(path):
+            return self.dict({}, **kwargs)
+
         if loader == YAML or (
             loader is None and (path.endswith(".yaml") or path.endswith(".yml"))
         ):
