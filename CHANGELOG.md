@@ -1,3 +1,9 @@
+## v3.4.0 (2025-03-23)
+
+### Feat
+
+- optional file loading and upgrades (#207)
+
 ## v3.3.0 (2024-09-16)
 
 ### Feat
