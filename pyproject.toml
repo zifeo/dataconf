@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dataconf"
-version = "2.2.2"
+version = "3.4.0"
 description = "Simple dataclasses configuration management for Python with hocon/json/yaml/properties/env-vars/dict support."
 authors = []
 license = "MPL-2.0"
@@ -12,7 +12,10 @@ include = [
 classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12"
 ]
 keywords = [
     "configuration",
@@ -29,21 +32,23 @@ keywords = [
 dataconf = 'dataconf.cli:run'
 
 [tool.poetry.dependencies]
-python = "^3.8"
-pyhocon = "0.3.59"
-python-dateutil = "^2.8.2"
-PyYAML = "^6.0.1"
+python = "^3.9"
+python-dateutil = "^2.9.0.post0"
+PyYAML = "^6.0.2"
+isodate = ">=0.6.1,<0.8.0"
+pyhocon = "^0.3.61"
+pyparsing = "^3.2.1"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.4.2"
-pre-commit = ">=2.21,<4.0"
-commitizen = ">=2.42.1,<4.0.0"
-pytest-httpserver = "^1.0.8"
-ruff = ">=0.0.247,<0.0.287"
+pytest = ">=8.3.5"
+pre-commit = ">=4.2.0"
+commitizen = ">=4.4.1"
+pytest-httpserver = "^1.1.2"
+ruff = ">=0.11.2"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "2.2.2"
+version = "3.4.0"
 tag_format = "v$major.$minor.$patch$prerelease"
 version_files = [
     "pyproject.toml:version",
@@ -51,5 +56,5 @@ version_files = [
 ]
 
 [build-system]
-requires = ["poetry"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=1.1.0"]
+build-backend = "poetry.core.masonry.api"

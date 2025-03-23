@@ -1,15 +1,18 @@
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
+from datetime import timedelta
 from datetime import timezone
 from enum import Enum
 from enum import IntEnum
 import os
-from typing import Any
+from pathlib import Path
+from typing import Any, Literal
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Text
+from typing import Tuple
 from typing import Union
 
 import dataconf
@@ -100,14 +103,32 @@ class TestParser:
     def test_list(self) -> None:
         @dataclass
         class A:
-            a: List[Text]
+            b: List[Text]
 
         conf = """
-        a = [
+        b = [
             test
         ]
         """
-        assert loads(conf, A) == A(a=["test"])
+        assert loads(conf, A) == A(b=["test"])
+
+        with pytest.raises(MalformedConfigException):
+            loads("b = null", A)
+
+    def test_tuple(self) -> None:
+        @dataclass
+        class A:
+            b: Tuple[str, timedelta]
+
+        conf = """
+        b = [
+            test,
+            P1D
+        ]
+        """
+        assert loads(conf, A) == A(b=("test", timedelta(days=1)))
+        with pytest.raises(MalformedConfigException):
+            loads("b = null", A)
 
     def test_boolean(self) -> None:
         @dataclass
@@ -269,6 +290,16 @@ class TestParser:
         """
         assert loads(conf_value, A) == A(b=IntColor.GREEN)
 
+    def test_path(self) -> None:
+        @dataclass
+        class P:
+            p: Path
+
+        conf_name = """
+        p = /tmp/test.yaml
+        """
+        assert loads(conf_name, P) == P(p=Path("/tmp/test.yaml"))
+
     def test_datetime(self) -> None:
         @dataclass
         class A:
@@ -288,6 +319,49 @@ class TestParser:
 
         conf = """
         b = "1997-07-16 19:20:0701:00"
+        """
+        with pytest.raises(ParseException):
+            assert loads(conf, A)
+
+    def test_duration(self) -> None:
+        @dataclass
+        class A:
+            b: timedelta
+
+        conf = """
+        b = "P123DT4H5M6S"
+        """
+        assert loads(conf, A) == A(b=timedelta(days=123, hours=4, minutes=5, seconds=6))
+
+    def test_bad_duration(self) -> None:
+        @dataclass
+        class A:
+            b: timedelta
+
+        conf = """
+        b = "P123D4H5M6S"
+        """
+        with pytest.raises(ParseException):
+            assert loads(conf, A)
+
+    def test_unsupported_duration_with_year(self) -> None:
+        @dataclass
+        class A:
+            b: timedelta
+
+        conf = """
+        b = "P1Y"
+        """
+        with pytest.raises(ParseException):
+            assert loads(conf, A)
+
+    def test_unsupported_duration_with_month(self) -> None:
+        @dataclass
+        class A:
+            b: timedelta
+
+        conf = """
+        b = "P1M"
         """
         with pytest.raises(ParseException):
             assert loads(conf, A)
@@ -312,6 +386,39 @@ class TestParser:
 
         conf = ""
         assert loads(conf, A) == A(b=[])
+
+    def test_empty_tuple(self) -> None:
+        @dataclass
+        class A:
+            b: Tuple[str, ...] = field(default_factory=tuple)
+
+        conf = ""
+        assert loads(conf, A) == A(b=())
+
+    def test_fixed_length_tuple(self) -> None:
+        @dataclass
+        class A:
+            b: Tuple[int, str, timedelta]
+
+        conf = """
+        {
+            "b": [1, "2", "P1D"]
+        }
+        """
+        assert loads(conf, A) == A(b=(1, "2", timedelta(days=1)))
+
+    def test_fixed_length_mismatch(self) -> None:
+        @dataclass
+        class A:
+            b: Tuple[int, str, timedelta]
+
+        conf = """
+        {
+            "b": [1, "2"]
+        }
+        """
+        with pytest.raises(MalformedConfigException):
+            loads(conf, A)
 
     def test_json(self) -> None:
         @dataclass
@@ -344,6 +451,9 @@ class TestParser:
 
         with pytest.raises(MissingTypeException):
             loads("", List)
+
+        with pytest.raises(MissingTypeException):
+            loads("", Tuple)
 
     def test_missing_field(self) -> None:
         @dataclass
@@ -626,6 +736,33 @@ class TestParser:
         """
         assert loads(conf, Base).foo == [{"a": 1}, [2]]
 
+    def test_tuple_any(self) -> None:
+        @dataclass
+        class Base:
+            foo: Tuple[Any, ...]
+
+        conf = """
+        {
+            foo: [
+                1
+                "b"
+            ]
+        }
+        """
+        assert loads(conf, Base).foo == (1, "b")
+
+        conf = """
+        {
+            foo: [
+                {a: 1}
+                [
+                    2
+                ]
+            ]
+        }
+        """
+        assert loads(conf, Base).foo == ({"a": 1}, [2])
+
     def test_yaml(self) -> None:
         @dataclass
         class B:
@@ -712,3 +849,38 @@ class TestParser:
             top_b="some other value",
             top_c=Nested(nested_a=False, nested_b="some default value"),
         )
+
+    def test_literals(self):
+        @dataclass
+        class Something:
+            literal: Literal["a", "b", 3] = field(default="a")
+
+        config_string = """
+        literal: "a"
+        """
+
+        assert loads(config_string, Something, loader=dataconf.YAML) == Something(
+            literal="a"
+        )
+
+        config_string = """
+        literal: "b"
+        """
+
+        assert loads(config_string, Something, loader=dataconf.YAML) == Something(
+            literal="b"
+        )
+
+        config_string = """
+        literal: 3
+        """
+
+        assert loads(config_string, Something, loader=dataconf.YAML) == Something(
+            literal=3
+        )
+
+        with pytest.raises(TypeConfigException):
+            config_string = """
+            literal: "d"
+            """
+            loads(config_string, Something, loader=dataconf.YAML)

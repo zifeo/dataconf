@@ -1,3 +1,51 @@
+## v3.4.0 (2025-03-23)
+
+### Feat
+
+- optional file loading and upgrades (#207)
+
+## v3.3.0 (2024-09-16)
+
+### Feat
+
+- drop python 3.9 and env list fixes (#177)
+
+## v3.2.0 (2024-05-31)
+
+## v3.1.0 (2024-04-02)
+
+### Feat
+
+- add support for tuples (#152)
+
+## v3.0.0 (2024-03-08)
+
+
+- update pyparsing and pyhocon (#145)
+
+## v2.5.0 (2024-02-01)
+
+### Feat
+
+- add timedelta support (#134)
+
+## v2.4.0 (2024-01-01)
+
+### Feat
+
+- update pre-commit
+- add support for `pathlib.Path` type (#126)
+
+### Fix
+
+- fix failing tests (#128)
+
+## v2.3.0 (2023-10-31)
+
+### Feat
+
+- add literal support (#119)
+
 ## v2.2.2 (2023-09-24)
 
 ### Fix

@@ -1,14 +1,13 @@
 repos:
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: "v0.0.291"
+    rev: "v0.11.2"
     hooks:
       - id: ruff
-  - repo: https://github.com/psf/black
-    rev: 23.9.1
-    hooks:
-      - id: black
+        args:
+          - --fix
+      - id: ruff-format
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: 3.9.1
+    rev: v4.4.1
     hooks:
       - id: commitizen
         stages: [commit-msg]

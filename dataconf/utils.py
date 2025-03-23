@@ -3,11 +3,13 @@ from dataclasses import asdict
 from dataclasses import fields
 from dataclasses import is_dataclass
 from datetime import datetime
+from datetime import timedelta
 from enum import Enum
 from enum import IntEnum
 from inspect import isclass
+from pathlib import Path
 
-from typing import Any
+from typing import Any, Literal
 from typing import Dict
 from typing import get_args
 from typing import get_origin
@@ -16,7 +18,7 @@ from typing import List
 from typing import Type
 from typing import Union
 
-from dataconf.exceptions import AmbiguousSubclassException
+from dataconf.exceptions import AmbiguousSubclassException, EnvListFormatException
 from dataconf.exceptions import EnvListOrderException
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
@@ -28,6 +30,8 @@ from dateutil.relativedelta import relativedelta
 from pyhocon import ConfigFactory
 from pyhocon.config_tree import ConfigList
 from pyhocon.config_tree import ConfigTree
+from isodate import parse_duration
+from isodate import Duration
 import pyparsing
 
 from dataconf.version import PY310up
@@ -116,7 +120,7 @@ def __parse(
         unexpected_keys = value.keys() - {renamings.get(k, k) for k in fs.keys()}
         if len(unexpected_keys) > 0 and not ignore_unexpected:
             raise UnexpectedKeysException(
-                f"unexpected key(s) \"{', '.join(unexpected_keys)}\" detected for type {clazz} at {path}"
+                f'unexpected key(s) "{", ".join(unexpected_keys)}" detected for type {clazz} at {path}'
             )
 
         return clazz(**fs)
@@ -125,24 +129,49 @@ def __parse(
     args = get_args(clazz)
 
     if origin is list:
+        if value is None:
+            raise MalformedConfigException(f"expected list at {path} but received None")
+
         if len(args) != 1:
             raise MissingTypeException("expected list with type information: List[?]")
 
-        if value is not None:
-            parse_candidate = args[0]
-            return [
-                __parse(
-                    v,
-                    args[0],
-                    f"{path}[]",
-                    strict,
-                    ignore_unexpected,
-                    globalns,
-                    localns,
-                )
-                for v in value
-            ]
-        return None
+        parse_candidate = args[0]
+        return [
+            __parse(
+                v,
+                parse_candidate,
+                f"{path}[]",
+                strict,
+                ignore_unexpected,
+                globalns,
+                localns,
+            )
+            for v in value
+        ]
+
+    if origin is tuple:
+        if value is None:
+            raise MalformedConfigException(
+                f"expected tuple at {path} but received None"
+            )
+
+        if len(args) < 1:
+            raise MissingTypeException("expected tuple with type information: Tuple[?]")
+
+        has_ellipsis = args[-1] == Ellipsis
+        if has_ellipsis and len(args) != 2:
+            raise MissingTypeException(
+                "expected one type since ellipsis is used: Tuple[?, ...]"
+            )
+        _args = args if not has_ellipsis else [args[0]] * len(value)
+        if len(value) > 0 and len(value) != len(_args):
+            raise MalformedConfigException(
+                "number of provided values does not match expected number of values for tuple."
+            )
+        return tuple(
+            __parse(v, arg, f"{path}[]", strict, ignore_unexpected, globalns, localns)
+            for v, arg in zip(value, _args)
+        )
 
     if origin is dict:
         if len(args) != 2:
@@ -236,14 +265,37 @@ def __parse(
         elif issubclass(clazz, str):
             return clazz(value)
         elif isinstance(value, str):
-            return clazz.__getattr__(value)
-
+            return clazz.__getitem__(value)
         raise TypeConfigException(f"expected str or int at {path}, got {type(value)}")
+
+    if isclass(clazz) and issubclass(clazz, Path):
+        return clazz.__call__(value)
+
+    if get_origin(clazz) is (Literal):
+        if value in args:
+            return value
+        raise TypeConfigException(
+            f"expected one of {', '.join(map(str, args))} at {path}, got {value}"
+        )
 
     if clazz is datetime:
         dt = __parse_type(value, clazz, path, isinstance(value, str))
         try:
             return isoparse(dt)
+        except ValueError as e:
+            raise ParseException(
+                f"expected type {clazz} at {path}, cannot parse due to {e}"
+            )
+
+    if clazz is timedelta:
+        dt = __parse_type(value, clazz, path, isinstance(value, str))
+        try:
+            duration = parse_duration(dt)
+            if isinstance(duration, Duration):
+                raise ParseException(
+                    "The ISO 8601 duration provided can not contain years or months"
+                )
+            return duration
         except ValueError as e:
             raise ParseException(
                 f"expected type {clazz} at {path}, cannot parse due to {e}"
@@ -329,6 +381,8 @@ def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
         if len(p) == 1:
             # []x
             if isinstance(focus, list):
+                if not isinstance(p[0], int):
+                    raise EnvListFormatException
                 if p[0] != len(focus):
                     raise EnvListOrderException
                 focus.append(v)
@@ -342,9 +396,8 @@ def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
             if p[0] not in focus:
                 # []{x}
                 if isinstance(focus, list):
-                    if p[0] != len(focus):
-                        raise EnvListOrderException
-                    focus.append({})
+                    if p[0] == len(focus):
+                        focus.append({})
                 # {}{x}
                 else:
                     focus[p[0]] = {}

@@ -1,6 +1,6 @@
 # Dataconf
 
-[![Actions Status](https://github.com/zifeo/dataconf/workflows/CI/badge.svg)](https://github.com/zifeo/dataconf/actions)
+[![Actions Status](https://github.com/zifeo/dataconf/actions/workflows/test-release.yaml/badge.svg)](https://github.com/zifeo/dataconf/actions)
 [![PyPI version](https://badge.fury.io/py/dataconf.svg)](https://badge.fury.io/py/dataconf)
 
 Simple dataclasses configuration management for Python with
@@ -8,7 +8,7 @@ hocon/json/yaml/properties/env-vars/dict/cli support.
 
 ## Getting started
 
-Requires at least Python 3.8.
+Requires at least Python 3.9.
 
 ```bash
 # pypi
@@ -29,9 +29,9 @@ pre-commit install
 ```python
 import os
 from dataclasses import dataclass, field
-from typing import List, Dict, Text, Union
+from typing import List, Dict, Text, Union, Tuple
 from dateutil.relativedelta import relativedelta
-from datetime import datetime
+from datetime import datetime, timedelta
 import dataconf
 
 conf = """
@@ -40,6 +40,16 @@ str_name = ${?HOME}
 dash-to-underscore = true
 float_num = 2.2
 iso_datetime = "2000-01-01T20:00:00"
+iso_duration = "P123DT4H5M6S"
+variable_length_tuple_data = [
+    1
+    2
+    3
+]
+tuple_data = [
+    a
+    P1D
+]
 # this is a comment
 list_data = [
     a
@@ -67,11 +77,11 @@ zone {
 
 class AbstractBaseClass:
     pass
-    
+
 @dataclass
 class Person(AbstractBaseClass):
     name: Text
-        
+
 @dataclass
 class Zone(AbstractBaseClass):
     area_code: int
@@ -87,6 +97,9 @@ class Config:
     dash_to_underscore: bool
     float_num: float
     iso_datetime: datetime
+    iso_duration: timedelta
+    variable_length_tuple_data: Tuple[int, ...]
+    tuple_data: Tuple[Text, timedelta]
     list_data: List[Text]
     nested: Nested
     nested_list: List[Nested]
@@ -99,17 +112,21 @@ class Config:
 
 print(dataconf.string(conf, Config))
 # Config(
-#   str_name='/users/root',
+#   str_name='/users/root/',
 #   dash_to_underscore=True,
 #   float_num=2.2,
+#   iso_datetime=datetime.datetime(2000, 1, 1, 20, 0),
+#   iso_duration=datetime.timedelta(days=123, seconds=14706),
+#   variable_length_tuple_data=(1,2,3),
+#   tuple_data=('a', datetime.timedelta(days=1)),
 #   list_data=['a', 'b'],
-#   nested=Nested(a='test'),
+#   nested=Nested(a='test', b=1),
 #   nested_list=[Nested(a='test1', b=2.5)],
-#   duration=relativedelta(seconds=+2), 
-#   union=1, 
-#   people=Person(name='Thailand'), 
+#   duration=relativedelta(seconds=+2),
+#   union=1,
+#   people=Person(name='Thailand'),
 #   zone=Zone(area_code=42),
-#   default='hello', 
+#   default='hello',
 #   default_factory={}
 # )
 
