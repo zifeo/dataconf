@@ -525,14 +525,14 @@ dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "pygments
 
 [[package]]
 name = "pytest-httpserver"
-version = "1.1.2"
+version = "1.1.3"
 description = "pytest-httpserver is a httpserver for pytest"
 optional = false
 python-versions = ">=3.9"
 groups = ["dev"]
 files = [
-    {file = "pytest_httpserver-1.1.2-py3-none-any.whl", hash = "sha256:93009d79574fc982301e8494fdea0884f21bb0caf3bcc719151dfbd1e3a943ea"},
-    {file = "pytest_httpserver-1.1.2.tar.gz", hash = "sha256:38d0b726580d05c47cbd0ced1ecb36a51668ef1596cdc6d70a9cfa2b3cc00ebd"},
+    {file = "pytest_httpserver-1.1.3-py3-none-any.whl", hash = "sha256:5f84757810233e19e2bb5287f3826a71c97a3740abe3a363af9155c0f82fdbb9"},
+    {file = "pytest_httpserver-1.1.3.tar.gz", hash = "sha256:af819d6b533f84b4680b9416a5b3f67f1df3701f1da54924afd4d6e4ba5917ec"},
 ]
 
 [package.dependencies]
