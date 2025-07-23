@@ -85,7 +85,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
                     val = f.default
                 if is_dataclass(val):
                     # if val is a dataclass, convert to ConfigTree
-                    val = ConfigTree(asdict(val))
+                    val = ConfigFactory.from_dict(asdict(val))
 
             if not isinstance(val, _MISSING_TYPE):
                 fs[f.name] = __parse(
