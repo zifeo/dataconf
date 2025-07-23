@@ -850,6 +850,68 @@ class TestParser:
             top_c=Nested(nested_a=False, nested_b="some default value"),
         )
 
+    def test_deeply_nested_with_defaults(self):
+        @dataclass
+        class L2Nested:
+            nested_l2_a: bool = False
+            nested_l2_b: str = field(default="default value")
+
+        @dataclass
+        class L1Nested:
+            nested_l1_a: bool = False
+            nested_l1_b: L2Nested = field(default_factory=L2Nested)
+
+        @dataclass
+        class TopLevel:
+            top_a: str
+            top_b: str = field(default="some other value")
+            top_c: L1Nested = field(
+                default_factory=L1Nested
+            )  # nested dataclass with a default factory
+
+        config_string = """
+        top_a: "some value"
+        """
+
+        assert loads(config_string, TopLevel, loader=dataconf.YAML) == TopLevel(
+            top_a="some value",
+            top_b="some other value",
+            top_c=L1Nested(
+                nested_l1_a=False,
+                nested_l1_b=L2Nested(nested_l2_a=False, nested_l2_b="default value"),
+            ),
+        )
+        config_string = """
+        top_a: "some value"
+        top_c:
+            nested_l1_a: true
+        """
+
+        assert loads(config_string, TopLevel, loader=dataconf.YAML) == TopLevel(
+            top_a="some value",
+            top_b="some other value",
+            top_c=L1Nested(
+                nested_l1_a=True,
+                nested_l1_b=L2Nested(nested_l2_a=False, nested_l2_b="default value"),
+            ),
+        )
+        config_string = """
+        top_a: "some value"
+        top_c: 
+            nested_l1_b: 
+                nested_l2_a: true
+                nested_l2_b: "value on l2"
+        """
+
+        assert loads(config_string, TopLevel, loader=dataconf.YAML) == TopLevel(
+            top_a="some value",
+            top_b="some other value",
+            top_c=L1Nested(
+                nested_l1_a=False,
+                nested_l1_b=L2Nested(nested_l2_a=True, nested_l2_b="value on l2"),
+            ),
+        )
+
     def test_literals(self):
         @dataclass
         class Something:
