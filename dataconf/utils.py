@@ -50,7 +50,9 @@ def __parse_type(value: Any, clazz: Type, path: str, check: bool):
     except TypeError:
         pass
 
-    raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
+    raise TypeConfigException(
+        f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+    )
 
 
 def is_union(origin):
@@ -66,7 +68,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
     if is_dataclass(clazz):
         if not isinstance(value, ConfigTree):
             raise TypeConfigException(
-                f"expected type {clazz} at {path}, got {type(value)}"
+                f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
             )
 
         fs = {}
@@ -98,13 +100,13 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
 
             else:
                 raise MalformedConfigException(
-                    f"expected type {clazz} at {path}, no {f.name} found in dataclass"
+                    f'expected type {clazz} at {path_to_str(path)}, no field "{f.name}" found in dataclass'
                 )
 
         unexpected_keys = value.keys() - {renamings.get(k, k) for k in fs.keys()}
         if len(unexpected_keys) > 0 and not ignore_unexpected:
             raise UnexpectedKeysException(
-                f'unexpected key(s) "{", ".join(unexpected_keys)}" detected for type {clazz} at {path}'
+                f'unexpected key(s) "{", ".join(unexpected_keys)}" detected for type {clazz} at {path_to_str(path)}'
             )
 
         return clazz(**fs)
@@ -114,7 +116,9 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
 
     if origin is list:
         if value is None:
-            raise MalformedConfigException(f"expected list at {path} but received None")
+            raise MalformedConfigException(
+                f"expected list at {path_to_str(path)} but received None"
+            )
 
         if len(args) != 1:
             raise MissingTypeException("expected list with type information: List[?]")
@@ -128,7 +132,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
     if origin is tuple:
         if value is None:
             raise MalformedConfigException(
-                f"expected tuple at {path} but received None"
+                f"expected tuple at {path_to_str(path)} but received None"
             )
 
         if len(args) < 1:
@@ -181,7 +185,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             return None
 
         raise TypeConfigException(
-            f"expected one of {', '.join(map(str, args))} at {path}, got {type(value)}"
+            f"expected one of {', '.join(map(str, args))} at {path_to_str(path)}, got {type(value)}"
         )
 
     if clazz is bool:
@@ -226,7 +230,9 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             return clazz(value)
         elif isinstance(value, str):
             return clazz.__getitem__(value)
-        raise TypeConfigException(f"expected str or int at {path}, got {type(value)}")
+        raise TypeConfigException(
+            f"expected str or int at {path_to_str(path)}, got {type(value)}"
+        )
 
     if isclass(clazz) and issubclass(clazz, Path):
         return clazz.__call__(value)
@@ -235,7 +241,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         if value in args:
             return value
         raise TypeConfigException(
-            f"expected one of {', '.join(map(str, args))} at {path}, got {value}"
+            f"expected one of {', '.join(map(str, args))} at {path_to_str(path)}, got {value}"
         )
 
     if clazz is datetime:
@@ -244,7 +250,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             return isoparse(dt)
         except ValueError as e:
             raise ParseException(
-                f"expected type {clazz} at {path}, cannot parse due to {e}"
+                f"expected type {clazz} at {path_to_str(path)}, cannot parse due to {e}"
             )
 
     if clazz is timedelta:
@@ -258,7 +264,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             return duration
         except ValueError as e:
             raise ParseException(
-                f"expected type {clazz} at {path}, cannot parse due to {e}"
+                f"expected type {clazz} at {path_to_str(path)}, cannot parse due to {e}"
             )
 
     if clazz is relativedelta:
@@ -292,17 +298,19 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
     elif len(child_successes) > 1:
         matching_classes = "\n- ".join(map(lambda x: x[0].__name__, child_successes))
         raise AmbiguousSubclassException(
-            f"""multiple subtypes of {clazz} matched at {path}, use '_type' to disambiguate:\n- {matching_classes}"""
+            f"""multiple subtypes of {clazz} matched at {path_to_str(path)}, use '_type' to disambiguate:\n- {matching_classes}"""
         )
 
     # no need to check length; false if empty
     if child_failures:
         failures = "\n- ".join([str(c) for c in child_failures])
         raise TypeConfigException(
-            f"expected type {clazz} at {path}, failed subclasses:\n- {failures}"
+            f"expected type {clazz} at {path_to_str(path)}, failed subclasses:\n- {failures}"
         )
 
-    raise TypeConfigException(f"expected type {clazz} at {path}, got {type(value)}")
+    raise TypeConfigException(
+        f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+    )
 
 
 def __generate(value: object, path: str):
@@ -397,6 +405,10 @@ def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
             set_lens(path, ret, v)
 
     return ret
+
+
+def path_to_str(path: str) -> str:
+    return path if len(path) > 0 else "root"
 
 
 def __cli_parse(argv: List[str]):

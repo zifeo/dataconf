@@ -604,7 +604,7 @@ class TestParser:
 
         assert e.value.args[0] == (
             "expected type <class 'tests.test_parse.InputType'> at .input_source, failed subclasses:\n"
-            "- expected type <class 'tests.test_parse.IntImpl'> at .input_source, no area_code found in dataclass\n"
+            "- expected type <class 'tests.test_parse.IntImpl'> at .input_source, no field \"area_code\" found in dataclass\n"
             "- unexpected key(s) \"city\" detected for type <class 'tests.test_parse.StringImpl'> at .input_source"
         )
 

@@ -35,16 +35,16 @@ dataconf = 'dataconf.cli:run'
 python = "^3.9"
 python-dateutil = "^2.9.0.post0"
 PyYAML = "^6.0.2"
-isodate = ">=0.6.1,<0.8.0"
+isodate = "^0.7.2"
 pyhocon = "^0.3.61"
-pyparsing = "^3.2.1"
+pyparsing = "^3.2.3"
 
 [tool.poetry.group.dev.dependencies]
-pytest = ">=8.3.5"
+pytest = ">=8.4.1"
 pre-commit = ">=4.2.0"
-commitizen = ">=4.4.1"
-pytest-httpserver = "^1.1.2"
-ruff = ">=0.11.2"
+commitizen = ">=4.8.3"
+pytest-httpserver = "^1.1.3"
+ruff = ">=0.12.5"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
