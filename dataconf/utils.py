@@ -13,6 +13,7 @@ from typing import Any, Literal
 from typing import Dict
 from typing import get_args
 from typing import get_origin
+from typing import get_type_hints
 from typing import List
 from typing import Type
 from typing import Union
@@ -64,7 +65,15 @@ def is_optional(type: Type):
     return is_union(get_origin(type)) and NoneType in get_args(type)
 
 
-def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected: bool):
+def __parse(
+    value: any,
+    clazz: Type,
+    path: str,
+    strict: bool,
+    ignore_unexpected: bool,
+    globalns,
+    localns,
+):
     if is_dataclass(clazz):
         if not isinstance(value, ConfigTree):
             raise TypeConfigException(
@@ -74,6 +83,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         fs = {}
         renamings = dict()
 
+        type_hints = get_type_hints(clazz, globalns, localns)
         for f in fields(clazz):
             if f.name in value:
                 val = value[f.name]
@@ -91,10 +101,16 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
 
             if not isinstance(val, _MISSING_TYPE):
                 fs[f.name] = __parse(
-                    val, f.type, f"{path}.{f.name}", strict, ignore_unexpected
+                    val,
+                    type_hints[f.name],
+                    f"{path}.{f.name}",
+                    strict,
+                    ignore_unexpected,
+                    globalns,
+                    localns,
                 )
 
-            elif is_optional(f.type):
+            elif is_optional(type_hints[f.name]):
                 # Optional not found
                 fs[f.name] = None
 
@@ -125,7 +141,15 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
 
         parse_candidate = args[0]
         return [
-            __parse(v, parse_candidate, f"{path}[]", strict, ignore_unexpected)
+            __parse(
+                v,
+                parse_candidate,
+                f"{path}[]",
+                strict,
+                ignore_unexpected,
+                globalns,
+                localns,
+            )
             for v in value
         ]
 
@@ -149,7 +173,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
                 "number of provided values does not match expected number of values for tuple."
             )
         return tuple(
-            __parse(v, arg, f"{path}[]", strict, ignore_unexpected)
+            __parse(v, arg, f"{path}[]", strict, ignore_unexpected, globalns, localns)
             for v, arg in zip(value, _args)
         )
 
@@ -162,7 +186,15 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             # ignore key type
             parse_candidate = args[1]
             return {
-                k: __parse(v, parse_candidate, f"{path}.{k}", strict, ignore_unexpected)
+                k: __parse(
+                    v,
+                    args[1],
+                    f"{path}.{k}",
+                    strict,
+                    ignore_unexpected,
+                    globalns,
+                    localns,
+                )
                 for k, v in value.items()
             }
         return None
@@ -176,7 +208,13 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             else:
                 try:
                     return __parse(
-                        value, parse_candidate, path, strict, ignore_unexpected
+                        value,
+                        parse_candidate,
+                        path,
+                        strict,
+                        ignore_unexpected,
+                        globalns,
+                        localns,
                     )
                 except TypeConfigException:
                     continue
@@ -189,7 +227,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         )
 
     if clazz is bool:
-        if not strict and value is not None:
+        if not strict and isinstance(value, str):
             try:
                 value = bool(value)
             except ValueError:
@@ -197,15 +235,17 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         return __parse_type(value, clazz, path, isinstance(value, bool))
 
     if clazz is int:
-        if not strict and value is not None:
+        if not strict and isinstance(value, str):
             try:
-                value = int(value)
+                cast = int(value)
+                if float(cast) == float(value):
+                    value = cast
             except ValueError:
                 pass
         return __parse_type(value, clazz, path, isinstance(value, int))
 
     if clazz is float:
-        if not strict and value is not None:
+        if not strict and isinstance(value, str):
             try:
                 value = float(value)
             except ValueError:
@@ -282,7 +322,15 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
                 child_successes.append(
                     (
                         child_clazz,
-                        __parse(value, child_clazz, path, strict, ignore_unexpected),
+                        __parse(
+                            value,
+                            child_clazz,
+                            path,
+                            strict,
+                            ignore_unexpected,
+                            globalns,
+                            localns,
+                        ),
                     )
                 )
             except (
