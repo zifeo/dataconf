@@ -439,6 +439,35 @@ class TestParser:
 
         assert loads("", A) == A(b="c")
 
+    def test_default_implicit(self) -> None:
+        @dataclass
+        class NestedOpt:
+            c: Optional[Text]
+            a: Text = "a"
+
+        @dataclass
+        class Implicit:
+            n: NestedOpt
+
+        assert loads("", Implicit) == Implicit(n=NestedOpt(c=None, a="a"))
+
+        @dataclass
+        class Nested:
+            b: Text
+            a: Text = "a"
+
+        @dataclass
+        class ExplicitRequired:
+            n: Nested
+
+        with pytest.raises(MalformedConfigException) as e:
+            assert loads("", ExplicitRequired)
+
+        assert (
+            e.value.args[0]
+            == "expected type <class 'tests.test_parse.TestParser.test_default_implicit.<locals>.ExplicitRequired'> at root, no field \"n\" found and <class 'tests.test_parse.TestParser.test_default_implicit.<locals>.Nested'> cannot be implicitly created"
+        )
+
     def test_root_dict(self) -> None:
         conf = """
         b: c
@@ -604,7 +633,7 @@ class TestParser:
 
         assert e.value.args[0] == (
             "expected type <class 'tests.test_parse.InputType'> at .input_source, failed subclasses:\n"
-            "- expected type <class 'tests.test_parse.IntImpl'> at .input_source, no field \"area_code\" found in dataclass\n"
+            "- expected type <class 'tests.test_parse.IntImpl'> at .input_source, no field \"area_code\" found\n"
             "- unexpected key(s) \"city\" detected for type <class 'tests.test_parse.StringImpl'> at .input_source"
         )
 
