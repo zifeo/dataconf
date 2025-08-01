@@ -59,7 +59,7 @@ def is_union(origin):
     return origin is Union or (PY310up and origin is UnionType)
 
 
-def is_optional(type: Type):
+def is_optional(type: Type | Any | str):
     # Optional = Union[T, NoneType]
     return is_union(get_origin(type)) and NoneType in get_args(type)
 
@@ -98,9 +98,28 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
                 # Optional not found
                 fs[f.name] = None
 
+            elif is_dataclass(f.type):
+                if all(
+                    not isinstance(field.default, _MISSING_TYPE)
+                    or not isinstance(field.default_factory, _MISSING_TYPE)
+                    or is_optional(field.type)
+                    for field in fields(f.type)
+                ):
+                    fs[f.name] = f.type(
+                        **{
+                            field.name: None
+                            for field in fields(f.type)
+                            if is_optional(field.type)
+                        }
+                    )
+                else:
+                    raise MalformedConfigException(
+                        f'expected type {clazz} at {path_to_str(path)}, no field "{f.name}" found and {f.type} cannot be implicitly created'
+                    )
+
             else:
                 raise MalformedConfigException(
-                    f'expected type {clazz} at {path_to_str(path)}, no field "{f.name}" found in dataclass'
+                    f'expected type {clazz} at {path_to_str(path)}, no field "{f.name}" found'
                 )
 
         unexpected_keys = value.keys() - {renamings.get(k, k) for k in fs.keys()}
