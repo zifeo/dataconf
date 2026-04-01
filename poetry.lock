@@ -522,17 +522,17 @@ windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
 name = "pyhocon"
-version = "0.3.61"
+version = "0.3.63"
 description = "HOCON parser for Python"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "pyhocon-0.3.61-py3-none-any.whl", hash = "sha256:73d0f064af9a7d454949c5557284ce1d716cfd8e1383ecc90095fc575d278df0"},
+    {file = "pyhocon-0.3.63.tar.gz", hash = "sha256:7c98db21453c0390c6cedc376576fee4e0a153da5f2201bc681cf886820f4a7c"},
 ]
 
 [package.dependencies]
-pyparsing = {version = ">=2,<4", markers = "python_version >= \"3.0\""}
+pyparsing = ">=3.0.0"
 
 [package.extras]
 duration = ["python-dateutil (>=2.8.0)"]
