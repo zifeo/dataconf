@@ -119,9 +119,10 @@ class TestEnvVars:
             "P_A_": "{ name: Test }",
             "P_B_": "d: 1\nc: 2",
             "P_C": "{ name: Test }",
+            "P_D_": '["a", "b"]',
         }
         assert env_vars_parse("P", env) == dict(
-            a=dict(name="Test"), b=dict(d=1, c=2), c="{ name: Test }"
+            a=dict(name="Test"), b=dict(d=1, c=2), c="{ name: Test }", d=["a", "b"]
         )
 
     def test_bad_nested_config(self) -> None:

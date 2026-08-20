@@ -13,6 +13,7 @@ from typing import Union
 import pytest
 
 import dataconf
+from dataconf.exceptions import TypeConfigException
 from dateutil.relativedelta import relativedelta
 
 from dataconf.version import PY310up
@@ -166,6 +167,121 @@ class TestParser:
         assert dataconf.env("DC", Example) == Example(
             hello=None, world="monde", float_num=1.3, int_num=2, bool_var=True
         )
+
+        os.environ.pop("DC_WORLD")
+        os.environ.pop("DC_FLOAT_NUM")
+        os.environ.pop("DC_INT_NUM")
+        os.environ.pop("DC_BOOL_VAR")
+
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("true", True),
+            ("True", True),
+            ("TRUE", True),
+            ("1", True),
+            ("yes", True),
+            ("on", True),
+            ("t", True),
+            ("y", True),
+            ("false", False),
+            ("False", False),
+            ("FALSE", False),
+            ("0", False),
+            ("no", False),
+            ("off", False),
+            ("f", False),
+            ("n", False),
+            (" false ", False),
+        ],
+    )
+    def test_env_bool_string_cast(self, raw: str, expected: bool) -> None:
+        @dataclass
+        class Example:
+            var: bool
+
+        os.environ["DC_VAR"] = raw
+        try:
+            assert dataconf.env("DC", Example) == Example(var=expected)
+        finally:
+            os.environ.pop("DC_VAR")
+
+    @pytest.mark.parametrize("raw", ["maybe", "2", "", "enabled"])
+    def test_env_bool_unrecognised_raises(self, raw: str) -> None:
+        @dataclass
+        class Example:
+            var: bool
+
+        os.environ["DC_VAR"] = raw
+        try:
+            with pytest.raises(TypeConfigException):
+                dataconf.env("DC", Example)
+        finally:
+            os.environ.pop("DC_VAR")
+
+    def test_env_nested_bool_false(self) -> None:
+        @dataclass
+        class Nested:
+            enabled: bool
+
+        @dataclass
+        class Example:
+            nested: Nested
+            flags: List[bool]
+
+        os.environ["DC_NESTED__ENABLED"] = "false"
+        os.environ["DC_FLAGS_0"] = "false"
+        os.environ["DC_FLAGS_1"] = "true"
+        try:
+            assert dataconf.env("DC", Example) == Example(
+                nested=Nested(enabled=False), flags=[False, True]
+            )
+        finally:
+            os.environ.pop("DC_NESTED__ENABLED")
+            os.environ.pop("DC_FLAGS_0")
+            os.environ.pop("DC_FLAGS_1")
+
+    def test_cli_bool_false(self) -> None:
+        @dataclass
+        class Example:
+            var: bool
+
+        assert dataconf.cli(["--var", "false"], Example) == Example(var=False)
+
+    def test_env_does_not_disable_strict_globally(self) -> None:
+        @dataclass
+        class Example:
+            n: int
+
+        os.environ["DC_N"] = "1"
+        try:
+            assert dataconf.env("DC", Example) == Example(n=1)
+        finally:
+            os.environ.pop("DC_N")
+
+        with pytest.raises(TypeConfigException):
+            dataconf.dict({"n": "1"}, Example)
+
+    def test_env_strict_kwarg_overrides_default(self) -> None:
+        @dataclass
+        class Example:
+            n: int
+
+        os.environ["DC_N"] = "1"
+        try:
+            with pytest.raises(TypeConfigException):
+                dataconf.env("DC", Example, strict=True)
+            assert dataconf.env("DC", Example) == Example(n=1)
+        finally:
+            os.environ.pop("DC_N")
+
+    def test_bool_not_cast_to_int_when_non_strict(self) -> None:
+        @dataclass
+        class Example:
+            n: int
+
+        with pytest.raises(TypeConfigException):
+            dataconf.multi.dict({"n": True}).env("DC_NONE").on(Example)
 
     @pytest.fixture
     def named_temporary_file(self):

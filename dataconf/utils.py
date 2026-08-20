@@ -42,6 +42,21 @@ if PY310up:
 
 NoneType = type(None)
 
+_BOOL_TRUE = {"true", "1", "yes", "on", "t", "y"}
+_BOOL_FALSE = {"false", "0", "no", "off", "f", "n"}
+
+
+def __parse_bool(value: Any):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalised = value.strip().lower()
+        if normalised in _BOOL_TRUE:
+            return True
+        if normalised in _BOOL_FALSE:
+            return False
+    return None
+
 
 def __parse_type(value: Any, clazz: Type, path: str, check: bool):
     try:
@@ -208,14 +223,14 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         )
 
     if clazz is bool:
-        if not strict and value is not None:
-            try:
-                value = bool(value)
-            except ValueError:
-                pass
-        return __parse_type(value, clazz, path, isinstance(value, bool))
+        parsed = __parse_bool(value)
+        if parsed is not None:
+            return parsed
+        return __parse_type(value, clazz, path, False)
 
     if clazz is int:
+        if isinstance(value, bool):
+            return __parse_type(value, clazz, path, False)
         if not strict and value is not None:
             try:
                 value = int(value)
@@ -224,6 +239,8 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         return __parse_type(value, clazz, path, isinstance(value, int))
 
     if clazz is float:
+        if isinstance(value, bool):
+            return __parse_type(value, clazz, path, False)
         if not strict and value is not None:
             try:
                 value = float(value)
@@ -243,7 +260,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
         return value
 
     if isclass(clazz) and (issubclass(clazz, Enum) or issubclass(clazz, IntEnum)):
-        if isinstance(value, int):
+        if isinstance(value, int) and not isinstance(value, bool):
             return clazz.__call__(value)
         elif issubclass(clazz, str):
             return clazz(value)

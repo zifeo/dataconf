@@ -140,6 +140,49 @@ class TestParser:
         """
         assert loads(conf, A) == A(a=False)
 
+        conf = """
+        a = "false"
+        """
+        assert loads(conf, A) == A(a=False)
+
+    def test_bool_not_accepted_as_int(self) -> None:
+        @dataclass
+        class A:
+            n: int
+
+        with pytest.raises(TypeConfigException):
+            loads("n = true", A)
+
+        with pytest.raises(TypeConfigException):
+            loads("n: true", A, loader=dataconf.YAML)
+
+        with pytest.raises(TypeConfigException):
+            dataconf.dict({"n": True}, A)
+
+        with pytest.raises(TypeConfigException):
+            dataconf.dict({"n": False}, A)
+
+        assert loads("n = 1", A) == A(n=1)
+
+    def test_bool_not_accepted_as_float(self) -> None:
+        @dataclass
+        class A:
+            n: float
+
+        with pytest.raises(TypeConfigException):
+            loads("n = true", A)
+
+        assert loads("n = 1", A) == A(n=1)
+        assert loads("n = 1.5", A) == A(n=1.5)
+
+    def test_bool_not_accepted_in_int_list(self) -> None:
+        @dataclass
+        class A:
+            ns: List[int]
+
+        with pytest.raises(TypeConfigException):
+            loads("ns = [true, 2]", A)
+
     def test_dict(self) -> None:
         @dataclass
         class A:
@@ -289,6 +332,9 @@ class TestParser:
         b = 2
         """
         assert loads(conf_value, A) == A(b=IntColor.GREEN)
+
+        with pytest.raises(TypeConfigException):
+            loads("b = true", A)
 
     def test_path(self) -> None:
         @dataclass
