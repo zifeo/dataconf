@@ -45,13 +45,13 @@ class Multi:
         self.kwargs = kwargs
 
     def env(self, prefix: str, **kwargs) -> "Multi":
-        self.strict = False
         data = env_vars_parse(prefix, os.environ)
-        return self.dict(data, **kwargs)
+        return self.dict(data, strict=False, **kwargs)
 
     def dict(self, obj: Dict[str, Any], **kwargs) -> "Multi":
         conf = ConfigFactory.from_dict(obj)
-        return Multi(self.confs + [conf], self.strict, **kwargs)
+        strict = kwargs.pop("strict", self.strict)
+        return Multi(self.confs + [conf], strict, **kwargs)
 
     def string(self, s: str, loader: str = HOCON, **kwargs) -> "Multi":
         if loader == YAML:
