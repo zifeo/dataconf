@@ -1,3 +1,9 @@
+## v3.7.0 (2026-08-20)
+
+### Fix
+
+- parse env bools without bool(str) (#254)
+
 ## v3.6.0 (2025-08-01)
 
 ### Feat
