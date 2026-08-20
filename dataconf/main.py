@@ -46,7 +46,8 @@ class Multi:
 
     def env(self, prefix: str, **kwargs) -> "Multi":
         data = env_vars_parse(prefix, os.environ)
-        return self.dict(data, strict=False, **kwargs)
+        kwargs.setdefault("strict", False)
+        return self.dict(data, **kwargs)
 
     def dict(self, obj: Dict[str, Any], **kwargs) -> "Multi":
         conf = ConfigFactory.from_dict(obj)

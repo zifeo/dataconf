@@ -262,6 +262,19 @@ class TestParser:
         with pytest.raises(TypeConfigException):
             dataconf.dict({"n": "1"}, Example)
 
+    def test_env_strict_kwarg_overrides_default(self) -> None:
+        @dataclass
+        class Example:
+            n: int
+
+        os.environ["DC_N"] = "1"
+        try:
+            with pytest.raises(TypeConfigException):
+                dataconf.env("DC", Example, strict=True)
+            assert dataconf.env("DC", Example) == Example(n=1)
+        finally:
+            os.environ.pop("DC_N")
+
     def test_bool_not_cast_to_int_when_non_strict(self) -> None:
         @dataclass
         class Example:
