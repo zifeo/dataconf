@@ -25,3 +25,7 @@ class TestCli:
 
         with pytest.raises(ParseException):
             cli_parse(["--a"])
+
+    def test_empty(self) -> None:
+        with pytest.raises(ParseException):
+            cli_parse([])

@@ -451,6 +451,9 @@ def __cli_parse(argv: List[str]):
     kvs = {}
     i = 0
 
+    if len(argv) == 0:
+        raise ParseException("no cli arguments provided")
+
     if not argv[0].startswith("--"):
         i += 1
 
