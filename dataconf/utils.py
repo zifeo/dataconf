@@ -14,6 +14,7 @@ from typing import Literal
 from typing import Union
 from typing import get_args
 from typing import get_origin
+from typing import get_type_hints
 
 import pyparsing
 from dateutil.parser import isoparse
@@ -72,6 +73,13 @@ def is_optional(type: type | Any | str):
     return is_union(get_origin(type)) and NoneType in get_args(type)
 
 
+def _type_hints(clazz: type) -> dict[str, Any]:
+    try:
+        return get_type_hints(clazz)
+    except (NameError, TypeError, AttributeError):
+        return {}
+
+
 def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected: bool):
     if is_dataclass(clazz):
         if not isinstance(value, ConfigTree):
@@ -81,8 +89,10 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
 
         fs = {}
         renamings = dict()
+        hints = _type_hints(clazz)
 
         for f in fields(clazz):
+            ftype = hints.get(f.name, f.type)
             if f.name in value:
                 val = value[f.name]
             elif f.name.replace("_", "-") in value:
@@ -99,30 +109,32 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
 
             if val is not MISSING:
                 fs[f.name] = __parse(
-                    val, f.type, f"{path}.{f.name}", strict, ignore_unexpected
+                    val, ftype, f"{path}.{f.name}", strict, ignore_unexpected
                 )
 
-            elif is_optional(f.type):
+            elif is_optional(ftype):
                 # Optional not found
                 fs[f.name] = None
 
-            elif is_dataclass(f.type):
+            elif is_dataclass(ftype):
+                nested_hints = _type_hints(ftype)
+                nested_fields = fields(ftype)
                 if all(
                     field.default is not MISSING
                     or field.default_factory is not MISSING
-                    or is_optional(field.type)
-                    for field in fields(f.type)
+                    or is_optional(nested_hints.get(field.name, field.type))
+                    for field in nested_fields
                 ):
-                    fs[f.name] = f.type(
+                    fs[f.name] = ftype(
                         **{
                             field.name: None
-                            for field in fields(f.type)
-                            if is_optional(field.type)
+                            for field in nested_fields
+                            if is_optional(nested_hints.get(field.name, field.type))
                         }
                     )
                 else:
                     raise MalformedConfigException(
-                        f'expected type {clazz} at {path_to_str(path)}, no field "{f.name}" found and {f.type} cannot be implicitly created'
+                        f'expected type {clazz} at {path_to_str(path)}, no field "{f.name}" found and {ftype} cannot be implicitly created'
                     )
 
             else:
