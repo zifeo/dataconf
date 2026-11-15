@@ -1,7 +1,7 @@
 from dataclasses import dataclass
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
-from datetime import timezone
 
 import pytest
 from dateutil.relativedelta import relativedelta
@@ -64,7 +64,7 @@ class TestToml:
         assert naive == A(when=datetime(2000, 1, 1, 20, 0, 0))
 
         aware = loads("when = 2000-01-01T20:00:00Z", A, loader=dataconf.TOML)
-        assert aware == A(when=datetime(2000, 1, 1, 20, 0, 0, tzinfo=timezone.utc))
+        assert aware == A(when=datetime(2000, 1, 1, 20, 0, 0, tzinfo=UTC))
 
         date_only = loads("when = 2000-01-01", A, loader=dataconf.TOML)
         assert date_only == A(when=datetime(2000, 1, 1))

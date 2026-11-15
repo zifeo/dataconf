@@ -1,9 +1,9 @@
 import os
 from dataclasses import dataclass
 from dataclasses import field
+from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
-from datetime import timezone
 from enum import Enum
 from enum import IntEnum
 from pathlib import Path
@@ -25,7 +25,6 @@ from dataconf.exceptions import TypeConfigException
 from dataconf.exceptions import UnexpectedKeysException
 from dataconf.main import file
 from dataconf.main import url
-from dataconf.version import PY311up
 from tests.conftest import file_handler
 
 PARENT_DIR = os.path.normpath(
@@ -271,7 +270,6 @@ class TestParser:
         """
         assert loads(conf_value, A) == A(b=Color.RED)
 
-    @pytest.mark.skipif(not PY311up, reason="Test only runs for version 3.11+")
     def test_strenum_class(self) -> None:
         from enum import StrEnum
 
@@ -350,9 +348,7 @@ class TestParser:
         conf = """
         b = "1997-07-16T19:20:07+01:00"
         """
-        assert loads(conf, A) == A(
-            b=datetime(1997, 7, 16, 18, 20, 7, tzinfo=timezone.utc)
-        )
+        assert loads(conf, A) == A(b=datetime(1997, 7, 16, 18, 20, 7, tzinfo=UTC))
 
     def test_bad_datetime(self) -> None:
         @dataclass

@@ -6,11 +6,11 @@ from collections.abc import Mapping
 from dataclasses import InitVar
 from dataclasses import dataclass
 from dataclasses import field
+from datetime import UTC
 from datetime import date
 from datetime import datetime
 from datetime import time
 from datetime import timedelta
-from datetime import timezone
 from enum import Enum
 from pathlib import Path
 from typing import Final
@@ -228,7 +228,7 @@ class TestFuzzFixes:
         original = A(
             v=("a", 1),
             p=Path("/tmp/x"),
-            when=datetime(2000, 1, 1, 20, tzinfo=timezone.utc),
+            when=datetime(2000, 1, 1, 20, tzinfo=UTC),
             d=timedelta(days=1, hours=2),
         )
         for fmt in ("hocon", "yaml", "json", "toml"):
