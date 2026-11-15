@@ -1,22 +1,16 @@
+import os
+import tempfile
 from abc import ABCMeta
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
 from datetime import timedelta
-import os
-import tempfile
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Text
-from typing import Union
+
 import pytest
+from dateutil.relativedelta import relativedelta
 
 import dataconf
 from dataconf.exceptions import TypeConfigException
-from dateutil.relativedelta import relativedelta
-
-from dataconf.version import PY310up
 
 PARENT_DIR = os.path.normpath(
     os.path.dirname(os.path.realpath(__file__)) + os.sep + os.pardir
@@ -30,7 +24,7 @@ class TestParser:
 
         @dataclass
         class Person(AbstractBaseClass):
-            name: Text
+            name: str
 
         @dataclass
         class Zone(AbstractBaseClass):
@@ -38,25 +32,25 @@ class TestParser:
 
         @dataclass
         class Nested:
-            a: Text
+            a: str
             b: float
 
         @dataclass
         class Config:
-            str_name: Text
+            str_name: str
             dash_to_underscore: bool
             float_num: float
             iso_datetime: datetime
             iso_duration: timedelta
-            list_data: List[Text]
+            list_data: list[str]
             nested: Nested
-            nested_list: List[Nested]
+            nested_list: list[Nested]
             duration: relativedelta
-            union: Union[Text, int]
+            union: str | int
             people: AbstractBaseClass
             zone: AbstractBaseClass
-            default: Text = "hello"
-            default_factory: Dict[Text, Text] = field(default_factory=dict)
+            default: str = "hello"
+            default_factory: dict[str, str] = field(default_factory=dict)
 
         # print(loads(conf, Config))
         assert dataconf.load(
@@ -84,19 +78,19 @@ class TestParser:
 
         @dataclass
         class A(P):
-            file_path: Text
-            sep: Text = ","
+            file_path: str
+            sep: str = ","
 
         @dataclass
         class B(P):
-            file_path: Text
-            engine: Text
+            file_path: str
+            engine: str
 
         @dataclass
         class C:
-            name: Text
+            name: str
             data: P
-            training: Optional[bool] = False
+            training: bool | None = False
 
         conf = """
         {
@@ -153,7 +147,7 @@ class TestParser:
     def test_env_var_cast_35(self) -> None:
         @dataclass
         class Example:
-            hello: Optional[str]
+            hello: str | None
             world: str
             float_num: float
             int_num: int
@@ -227,7 +221,7 @@ class TestParser:
         @dataclass
         class Example:
             nested: Nested
-            flags: List[bool]
+            flags: list[bool]
 
         os.environ["DC_NESTED__ENABLED"] = "false"
         os.environ["DC_FLAGS_0"] = "false"
@@ -301,7 +295,6 @@ class TestParser:
 
         assert original == validate
 
-    @pytest.mark.skipif(not PY310up, reason="Test only runs for version 3.10+")
     def test_union_alt_syntax_112(self):
         @dataclass
         class Borked:
@@ -312,7 +305,7 @@ class TestParser:
 
         @dataclass
         class BorkedOpt:
-            foo: Optional[str | int]
+            foo: str | int | None
 
         assert dataconf.dict({"foo": None}, BorkedOpt) == BorkedOpt(foo=None)
         assert dataconf.dict({}, BorkedOpt) == BorkedOpt(foo=None)

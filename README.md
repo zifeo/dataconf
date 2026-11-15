@@ -8,7 +8,7 @@ hocon/json/yaml/properties/env-vars/dict/cli support.
 
 ## Getting started
 
-Requires at least Python 3.9.
+Requires at least Python 3.10.
 
 ```bash
 # pypi

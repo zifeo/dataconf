@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
@@ -5,15 +6,13 @@ from datetime import timedelta
 from datetime import timezone
 from enum import Enum
 from enum import IntEnum
-import os
 from pathlib import Path
-from typing import Any, Literal
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Text
-from typing import Tuple
-from typing import Union
+from typing import Any
+from typing import Literal
+
+import pytest
+from dateutil.relativedelta import relativedelta
+from pytest_httpserver import HTTPServer
 
 import dataconf
 from dataconf import load
@@ -26,9 +25,6 @@ from dataconf.exceptions import TypeConfigException
 from dataconf.exceptions import UnexpectedKeysException
 from dataconf.main import file
 from dataconf.main import url
-from dateutil.relativedelta import relativedelta
-import pytest
-from pytest_httpserver import HTTPServer
 from dataconf.version import PY311up
 from tests.conftest import file_handler
 
@@ -43,8 +39,8 @@ class InputType:
 
 @dataclass(init=True, repr=True)
 class StringImpl(InputType):
-    name: Text
-    age: Text
+    name: str
+    age: str
 
     def test_method(self):
         return f"{self.name} is {self.age} years old."
@@ -56,10 +52,10 @@ class StringImpl(InputType):
 @dataclass(init=True, repr=True)
 class IntImpl(InputType):
     area_code: int
-    phone_num: Text
+    phone_num: str
 
     def test_method(self):
-        return f"The area code for {self.phone_num} is {str(self.area_code)}"
+        return f"The area code for {self.phone_num} is {self.area_code!s}"
 
     def test_complex(self):
         return self.area_code - 10
@@ -83,7 +79,7 @@ class TestParser:
     def test_simple(self) -> None:
         @dataclass
         class A:
-            a: Text
+            a: str
 
         conf = """
         a = test
@@ -103,7 +99,7 @@ class TestParser:
     def test_list(self) -> None:
         @dataclass
         class A:
-            b: List[Text]
+            b: list[str]
 
         conf = """
         b = [
@@ -118,7 +114,7 @@ class TestParser:
     def test_tuple(self) -> None:
         @dataclass
         class A:
-            b: Tuple[str, timedelta]
+            b: tuple[str, timedelta]
 
         conf = """
         b = [
@@ -178,7 +174,7 @@ class TestParser:
     def test_bool_not_accepted_in_int_list(self) -> None:
         @dataclass
         class A:
-            ns: List[int]
+            ns: list[int]
 
         with pytest.raises(TypeConfigException):
             loads("ns = [true, 2]", A)
@@ -186,7 +182,7 @@ class TestParser:
     def test_dict(self) -> None:
         @dataclass
         class A:
-            a: Dict[Text, Text]
+            a: dict[str, str]
 
         conf = """
         a {
@@ -198,7 +194,7 @@ class TestParser:
     def test_nested(self) -> None:
         @dataclass
         class B:
-            a: Text
+            a: str
 
         @dataclass
         class A:
@@ -214,11 +210,11 @@ class TestParser:
     def test_union(self) -> None:
         @dataclass
         class B:
-            a: Text
+            a: str
 
         @dataclass
         class A:
-            b: Union[B, Text, int]
+            b: B | str | int
 
         conf = """
         b {
@@ -250,7 +246,7 @@ class TestParser:
     def test_optional(self) -> None:
         @dataclass
         class A:
-            b: Optional[Text] = None
+            b: str | None = None
 
         conf = ""
         assert loads(conf, A) == A(b=None)
@@ -415,7 +411,7 @@ class TestParser:
     def test_optional_with_default(self) -> None:
         @dataclass
         class A:
-            b: Optional[Text]
+            b: str | None
 
         conf = ""
         assert loads(conf, A) == A(b=None)
@@ -428,7 +424,7 @@ class TestParser:
     def test_empty_list(self) -> None:
         @dataclass
         class A:
-            b: List[Text] = field(default_factory=list)
+            b: list[str] = field(default_factory=list)
 
         conf = ""
         assert loads(conf, A) == A(b=[])
@@ -436,7 +432,7 @@ class TestParser:
     def test_empty_tuple(self) -> None:
         @dataclass
         class A:
-            b: Tuple[str, ...] = field(default_factory=tuple)
+            b: tuple[str, ...] = field(default_factory=tuple)
 
         conf = ""
         assert loads(conf, A) == A(b=())
@@ -444,7 +440,7 @@ class TestParser:
     def test_fixed_length_tuple(self) -> None:
         @dataclass
         class A:
-            b: Tuple[int, str, timedelta]
+            b: tuple[int, str, timedelta]
 
         conf = """
         {
@@ -456,7 +452,7 @@ class TestParser:
     def test_fixed_length_mismatch(self) -> None:
         @dataclass
         class A:
-            b: Tuple[int, str, timedelta]
+            b: tuple[int, str, timedelta]
 
         conf = """
         {
@@ -469,7 +465,7 @@ class TestParser:
     def test_json(self) -> None:
         @dataclass
         class A:
-            b: Text
+            b: str
 
         conf = """
         {
@@ -481,15 +477,15 @@ class TestParser:
     def test_default_value(self) -> None:
         @dataclass
         class A:
-            b: Text = "c"
+            b: str = "c"
 
         assert loads("", A) == A(b="c")
 
     def test_default_implicit(self) -> None:
         @dataclass
         class NestedOpt:
-            c: Optional[Text]
-            a: Text = "a"
+            c: str | None
+            a: str = "a"
 
         @dataclass
         class Implicit:
@@ -499,8 +495,8 @@ class TestParser:
 
         @dataclass
         class Nested:
-            b: Text
-            a: Text = "a"
+            b: str
+            a: str = "a"
 
         @dataclass
         class ExplicitRequired:
@@ -518,22 +514,22 @@ class TestParser:
         conf = """
         b: c
         """
-        assert loads(conf, Dict[Text, Text]) == dict(b="c")
+        assert loads(conf, dict[str, str]) == dict(b="c")
 
     def test_missing_type(self) -> None:
         with pytest.raises(MissingTypeException):
-            loads("", Dict)
+            loads("", dict)
 
         with pytest.raises(MissingTypeException):
-            loads("", List)
+            loads("", list)
 
         with pytest.raises(MissingTypeException):
-            loads("", Tuple)
+            loads("", tuple)
 
     def test_missing_field(self) -> None:
         @dataclass
         class A:
-            b: Text
+            b: str
 
         conf = """
         {
@@ -555,10 +551,10 @@ class TestParser:
 
         @dataclass
         class Clazz:
-            f: Dict[Text, Text] = field(default_factory=dict)
+            f: dict[str, str] = field(default_factory=dict)
 
         with pytest.raises(UnexpectedKeysException):
-            loads(conf, Dict[Text, Clazz])
+            loads(conf, dict[str, Clazz])
 
     def test_ignore_unexpected(self) -> None:
         conf = """
@@ -568,7 +564,7 @@ class TestParser:
 
         @dataclass
         class A:
-            a: Text
+            a: str
 
         with pytest.raises(UnexpectedKeysException):
             loads(conf, A)
@@ -578,21 +574,21 @@ class TestParser:
     def test_complex_hocon(self) -> None:
         @dataclass
         class Conn:
-            host: Text
+            host: str
             port: int
-            ssl: Optional[Dict[Text, Text]] = field(default_factory=dict)
+            ssl: dict[str, str] | None = field(default_factory=dict)
 
         @dataclass
         class Base:
-            data_root: Text
-            pipeline_name: Text
-            data_type: Text
+            data_root: str
+            pipeline_name: str
+            data_type: str
             production: bool
-            conn: Optional[Conn] = None
-            data_split: Optional[Dict[Text, int]] = None
-            tfx_root: Optional[Text] = None
-            metadata_root: Optional[Text] = None
-            beam_args: Optional[List[Text]] = field(
+            conn: Conn | None = None
+            data_split: dict[str, int] | None = None
+            tfx_root: str | None = None
+            metadata_root: str | None = None
+            beam_args: list[str] | None = field(
                 default_factory=lambda: [
                     "--direct_running_mode=multi_processing",
                     "--direct_num_workers=0",
@@ -612,7 +608,7 @@ class TestParser:
     def test_traits_string_impl(self) -> None:
         @dataclass
         class Base:
-            location: Text
+            location: str
             input_source: InputType
 
         str_conf = """
@@ -636,7 +632,7 @@ class TestParser:
     def test_traits_int_impl(self) -> None:
         @dataclass
         class Base:
-            location: Text
+            location: str
             input_source: InputType
 
         str_conf = """
@@ -660,7 +656,7 @@ class TestParser:
     def test_traits_failure(self) -> None:
         @dataclass
         class Base:
-            location: Text
+            location: str
             input_source: InputType
 
         str_conf = """
@@ -686,7 +682,7 @@ class TestParser:
     def test_traits_ambiguous(self) -> None:
         @dataclass
         class Base:
-            a: Text
+            a: str
             foo: AmbigImplBase
 
         str_conf = """
@@ -754,7 +750,7 @@ class TestParser:
     def test_nested_any(self) -> None:
         @dataclass
         class Base:
-            foo: Dict[str, Any]
+            foo: dict[str, Any]
 
         conf = """
         {
@@ -787,7 +783,7 @@ class TestParser:
     def test_list_any(self) -> None:
         @dataclass
         class Base:
-            foo: List[Any]
+            foo: list[Any]
 
         conf = """
         {
@@ -814,7 +810,7 @@ class TestParser:
     def test_tuple_any(self) -> None:
         @dataclass
         class Base:
-            foo: Tuple[Any, ...]
+            foo: tuple[Any, ...]
 
         conf = """
         {
@@ -841,7 +837,7 @@ class TestParser:
     def test_yaml(self) -> None:
         @dataclass
         class B:
-            c: Text
+            c: str
 
         @dataclass
         class A:
@@ -856,8 +852,8 @@ class TestParser:
     def test_yaml_file(self) -> None:
         @dataclass
         class A:
-            hello: Text
-            foo: List[str]
+            hello: str
+            foo: list[str]
 
         expected = A(hello="bonjour", foo=["bar"])
         assert file("confs/simple.yaml", A) == expected
@@ -867,8 +863,8 @@ class TestParser:
     def test_yaml_url(self, httpserver: HTTPServer) -> None:
         @dataclass
         class A:
-            hello: Text
-            foo: List[str]
+            hello: str
+            foo: list[str]
 
         httpserver.expect_request("/simple.yaml").respond_with_handler(
             file_handler("confs/simple.yaml")
@@ -882,16 +878,16 @@ class TestParser:
     def test_json_file(self) -> None:
         @dataclass
         class A:
-            hello: Text
-            foo: List[str]
+            hello: str
+            foo: list[str]
 
         assert file("confs/simple.json", A) == A(hello="bonjour", foo=["bar"])
 
     def test_json_url(self, httpserver: HTTPServer) -> None:
         @dataclass
         class A:
-            hello: Text
-            foo: List[str]
+            hello: str
+            foo: list[str]
 
         httpserver.expect_request("/simple.json").respond_with_handler(
             file_handler("confs/simple.json")
