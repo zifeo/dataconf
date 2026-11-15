@@ -1,3 +1,9 @@
+## v3.7.1 (2026-11-15)
+
+### Feat
+
+- drop python 3.9, add 3.15, and guard empty cli argv (#267)
+
 ## v3.7.0 (2026-08-20)
 
 ### Fix
