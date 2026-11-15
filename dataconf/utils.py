@@ -1,5 +1,9 @@
 import dataclasses
+import json
 import re
+import typing
+from collections.abc import Mapping as MappingAbc
+from collections.abc import MutableMapping
 from collections.abc import Sequence
 from dataclasses import MISSING
 from dataclasses import asdict
@@ -7,6 +11,7 @@ from dataclasses import fields
 from dataclasses import is_dataclass
 from datetime import date
 from datetime import datetime
+from datetime import time
 from datetime import timedelta
 from enum import Enum
 from enum import IntEnum
@@ -14,6 +19,7 @@ from inspect import isclass
 from pathlib import Path
 from types import UnionType
 from typing import Any
+from typing import Final
 from typing import ForwardRef
 from typing import Literal
 from typing import Union
@@ -31,6 +37,7 @@ from isodate import parse_duration
 from pyhocon import ConfigFactory
 from pyhocon.config_tree import ConfigList
 from pyhocon.config_tree import ConfigTree
+from pyhocon.exceptions import ConfigException
 
 from dataconf.exceptions import AmbiguousSubclassException
 from dataconf.exceptions import EnvListFormatException
@@ -92,6 +99,8 @@ _UNION_CATCH = (
 )
 
 _ENV_KEY_PARTS = re.compile(r"(\d+)")
+_HOCON_BARE_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_-]*$")
+_DICT_ORIGINS = {dict, MappingAbc, MutableMapping}
 
 
 def _type_hints(clazz: type) -> dict[str, Any]:
@@ -101,12 +110,25 @@ def _type_hints(clazz: type) -> dict[str, Any]:
         return {}
 
 
+def _unwrap_type(clazz: Any) -> Any:
+    if clazz is None:
+        return clazz
+    origin = get_origin(clazz)
+    if origin is Final:
+        args = get_args(clazz)
+        return _unwrap_type(args[0]) if args else clazz
+    type_alias = getattr(typing, "TypeAliasType", None)
+    if type_alias is not None and isinstance(clazz, type_alias):
+        return _unwrap_type(clazz.__value__)
+    return clazz
+
+
 def _is_mapping(value: Any) -> bool:
     return isinstance(value, (ConfigTree, dict)) and not isinstance(value, ConfigList)
 
 
 def _plain(value: Any) -> Any:
-    if isinstance(value, ConfigTree):
+    if isinstance(value, (ConfigTree, dict)):
         return {k: _plain(v) for k, v in value.items()}
     if isinstance(value, (list, tuple, ConfigList)):
         return [_plain(v) for v in value]
@@ -124,6 +146,10 @@ def _sequence_from(value: Any, path: str, clazz: type):
         )
     if isinstance(value, ConfigTree):
         keys = list(value.keys())
+        if not keys:
+            raise TypeConfigException(
+                f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+            )
         try:
             idxs = [int(k) for k in keys]
         except (TypeError, ValueError):
@@ -169,9 +195,14 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
             f"unresolved type annotation {clazz!r} at {path_to_str(path)}"
         )
 
+    clazz = _unwrap_type(clazz)
+
     supertype = getattr(clazz, "__supertype__", None)
     if supertype is not None:
         return __parse(value, supertype, path, strict, ignore_unexpected)
+
+    if is_dataclass(clazz) and is_dataclass(value) and isinstance(value, clazz):
+        return value
 
     if is_dataclass(clazz):
         if not _is_mapping(value):
@@ -262,6 +293,7 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
                 )
 
         unexpected_keys = set(value.keys()) - used_keys
+        unexpected_keys.discard("_type")
         if len(unexpected_keys) > 0 and not ignore_unexpected:
             raise UnexpectedKeysException(
                 f'unexpected key(s) "{", ".join(map(str, unexpected_keys))}" detected for type {clazz} at {path_to_str(path)}'
@@ -312,7 +344,7 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
             for v, arg in zip(seq, _args)
         )
 
-    if clazz is dict or origin is dict:
+    if clazz is dict or origin in _DICT_ORIGINS:
         if len(args) != 2:
             raise MissingTypeException(
                 "expected dict with type information: Dict[?, ?]"
@@ -334,14 +366,20 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
     if is_union(origin):
         # Optional = Union[T, NoneType]
         has_none = False
+        candidates = []
         for parse_candidate in args:
             if parse_candidate is NoneType:
                 has_none = True
             else:
+                candidates.append(parse_candidate)
+
+        ignore_flags = (False, True) if ignore_unexpected else (False,)
+        for ignore_flag in ignore_flags:
+            for parse_candidate in candidates:
+                if parse_candidate is bool and str in args and isinstance(value, str):
+                    continue
                 try:
-                    return __parse(
-                        value, parse_candidate, path, strict, ignore_unexpected
-                    )
+                    return __parse(value, parse_candidate, path, strict, ignore_flag)
                 except _UNION_CATCH:
                     continue
 
@@ -416,6 +454,23 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
         raise TypeConfigException(
             f"expected one of {', '.join(map(str, args))} at {path_to_str(path)}, got {value}"
         )
+
+    if clazz is time:
+        if isinstance(value, time) and not isinstance(value, datetime):
+            return value
+        if isinstance(value, datetime):
+            return value.timetz() if value.tzinfo else value.time()
+        raw = __parse_type(value, clazz, path, isinstance(value, str))
+        try:
+            return time.fromisoformat(raw)
+        except ValueError:
+            try:
+                parsed = isoparse(raw)
+            except ValueError as e:
+                raise ParseException(
+                    f"expected type {clazz} at {path_to_str(path)}, cannot parse due to {e}"
+                )
+            return parsed.timetz() if parsed.tzinfo else parsed.time()
 
     if clazz is datetime:
         if isinstance(value, datetime):
@@ -521,14 +576,15 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
 
     child_failures = []
     child_successes = []
+    if not isinstance(clazz, type) or not isclass(clazz):
+        raise TypeConfigException(
+            f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+        )
     if not _is_mapping(value):
         raise TypeConfigException(
             f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
         )
-    try:
-        subtype = value.pop("_type", default=None)
-    except TypeError:
-        subtype = value.pop("_type", None)
+    subtype = value.get("_type", None)
     for child_clazz in sorted(clazz.__subclasses__(), key=lambda c: c.__name__):
         if is_dataclass(child_clazz) and (
             subtype is None
@@ -569,13 +625,37 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
     )
 
 
+def _hocon_safe_keys(value: object) -> bool:
+    if isinstance(value, (ConfigTree, dict)):
+        for k, v in value.items():
+            if not isinstance(k, str) or not _HOCON_BARE_KEY.fullmatch(k):
+                return False
+            if not _hocon_safe_keys(v):
+                return False
+        return True
+    if isinstance(value, (list, tuple, ConfigList)):
+        return all(_hocon_safe_keys(v) for v in value)
+    return True
+
+
 def __generate(value: object, path: str):
-    if is_dataclass(value):
-        tree = {k: __generate(v, f"{path}.{k}") for k, v in asdict(value).items()}
+    if is_dataclass(value) and not isinstance(value, type):
+        tree = {}
+        for f in fields(value):
+            if not f.init:
+                continue
+            item = getattr(value, f.name)
+            if item is None:
+                continue
+            tree[f.name] = __generate(item, f"{path}.{f.name}")
         return ConfigTree(tree)
 
     if isinstance(value, dict):
         tree = {k: __generate(v, f"{path}.{k}") for k, v in value.items()}
+        if any(
+            not isinstance(k, str) or not _HOCON_BARE_KEY.fullmatch(k) for k in tree
+        ):
+            return tree
         return ConfigTree(tree)
 
     if isinstance(value, (list, tuple)):
@@ -591,8 +671,17 @@ def __generate(value: object, path: str):
     if isinstance(value, datetime):
         return value.isoformat()
 
+    if isinstance(value, time):
+        return value.isoformat()
+
     if isinstance(value, date):
         return value.isoformat()
+
+    if isinstance(value, bytes):
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError as e:
+            raise ParseException("bytes values must be valid UTF-8 to dump") from e
 
     if isinstance(value, relativedelta):
         return _relativedelta_iso(value)
@@ -610,9 +699,10 @@ def __to_toml(value: object):
     if isinstance(value, (ConfigTree, dict)):
         out = {}
         for k, v in value.items():
+            if v is None:
+                raise ParseException("TOML cannot encode null dict values")
             converted = __to_toml(v)
-            if converted is not None:
-                out[str(k)] = converted
+            out[str(k)] = converted
         return out
 
     if isinstance(value, (list, tuple, ConfigList)):
@@ -638,10 +728,58 @@ def __to_toml(value: object):
     return value
 
 
+def __to_properties(value: object, prefix: str = "") -> str:
+    lines: list[str] = []
+
+    def walk(v, p: str):
+        if v is None:
+            raise ParseException("properties cannot encode null values")
+        if isinstance(v, (dict, ConfigTree)):
+            if any(not isinstance(k, str) or "." in k for k in v):
+                raise ParseException(
+                    "properties cannot encode dict keys that contain '.'"
+                )
+            for k, item in v.items():
+                nxt = f"{p}.{k}" if p else str(k)
+                walk(item, nxt)
+            return
+        if isinstance(v, (list, tuple, ConfigList)):
+            if len(v) == 0:
+                lines.append(f"{p} = []")
+                return
+            for i, item in enumerate(v):
+                if item is None:
+                    raise ParseException("properties cannot encode null list items")
+                walk(item, f"{p}.{i}")
+            return
+        if isinstance(v, bool):
+            rendered = "true" if v else "false"
+        elif isinstance(v, (int, float)):
+            rendered = str(v)
+        else:
+            rendered = json.dumps(
+                v if isinstance(v, str) else str(v), ensure_ascii=False
+            )
+        lines.append(f"{p} = {rendered}")
+
+    walk(value, prefix)
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
 def __env_vars_parse(prefix: str, obj: dict[str, Any]):
     ret = {}
 
+    def _key(focus, key):
+        if isinstance(focus, list):
+            return key
+        return str(key) if isinstance(key, int) else key
+
     def set_lens(p, focus, v):
+        if not p or p[0] == "":
+            raise ParseException("env/cli key is empty")
+
+        key = _key(focus, p[0])
+
         # value
         if len(p) == 1:
             # []x
@@ -653,13 +791,12 @@ def __env_vars_parse(prefix: str, obj: dict[str, Any]):
                 focus.append(v)
             # {}x
             else:
-                key = str(p[0]) if isinstance(p[0], int) else p[0]
                 focus[key] = v
             return
 
         # dict
         if p[1] == "":
-            if not _has_index(focus, p[0]):
+            if not _has_index(focus, key):
                 # []{x}
                 if isinstance(focus, list):
                     if p[0] != len(focus):
@@ -667,21 +804,25 @@ def __env_vars_parse(prefix: str, obj: dict[str, Any]):
                     focus.append({})
                 # {}{x}
                 else:
-                    focus[p[0]] = {}
-            elif not isinstance(focus[p[0]], (dict, list)):
+                    focus[key] = {}
+            elif not isinstance(focus[key], (dict, list)):
                 raise ParseException(
-                    f"cannot nest under {p[0]!r}: existing value is {type(focus[p[0]])}"
+                    f"cannot nest under {key!r}: existing value is {type(focus[key])}"
                 )
 
             if len(p) == 2:
-                focus[p[0]] = v
+                focus[key] = v
                 return
-            return set_lens(p[2:], focus[p[0]], v)
+            return set_lens(p[2:], focus[key], v)
 
         # list (only if the focus/value is already a list or if it starts with element 0)
-        parent_is_list = _has_index(focus, p[0]) and isinstance(focus[p[0]], list)
+        parent_is_list = _has_index(focus, key) and isinstance(focus[key], list)
         if isinstance(p[1], int) and (p[1] == 0 or parent_is_list):
-            if not _has_index(focus, p[0]):
+            if _has_index(focus, key) and not isinstance(focus[key], list):
+                raise ParseException(
+                    f"cannot nest under {key!r}: existing value is {type(focus[key])}"
+                )
+            if not _has_index(focus, key):
                 # [][x]
                 if isinstance(focus, list):
                     if p[0] != len(focus):
@@ -689,18 +830,17 @@ def __env_vars_parse(prefix: str, obj: dict[str, Any]):
                     focus.append([])
                 # {}[x]
                 else:
-                    focus[p[0]] = []
+                    focus[key] = []
 
-            return set_lens(p[1:], focus[p[0]], v)
+            return set_lens(p[1:], focus[key], v)
 
         # compose path
         return set_lens([f"{p[0]}_{p[1]}"] + p[2:], focus, v)
 
     def int_or_string(v):
-        try:
+        if v.isascii() and v.isdigit() and (len(v) == 1 or not v.startswith("0")):
             return int(v)
-        except ValueError:
-            return v
+        return v
 
     if not prefix.endswith("_") and prefix != "":
         prefix = f"{prefix}_"
@@ -715,13 +855,16 @@ def __env_vars_parse(prefix: str, obj: dict[str, Any]):
             if k.endswith("_"):
                 try:
                     v = ConfigFactory.parse_string(v)
-                except pyparsing.ParseBaseException as e:
+                except (pyparsing.ParseBaseException, ConfigException) as e:
                     raise ParseException(
                         f"env var {k} ends with `_` and expects a nested config, got: {e}"
-                    )
+                    ) from e
                 k = k[:-1]
 
-            path = [int_or_string(e) for e in k[len(prefix) :].lower().split("_")]
+            rest = k[len(prefix) :].lower()
+            path = [int_or_string(e) for e in rest.split("_")]
+            if not rest or path[0] == "":
+                raise ParseException("env/cli key is empty")
             set_lens(path, ret, v)
 
     return ret

@@ -1,6 +1,6 @@
 # Dataconf
 
-[![Actions Status](https://github.com/zifeo/dataconf/actions/workflows/test-release.yaml/badge.svg)](https://github.com/zifeo/dataconf/actions)
+[![Actions Status](https://github.com/zifeo/dataconf/actions/workflows/tests.yml/badge.svg)](https://github.com/zifeo/dataconf/actions)
 [![PyPI version](https://badge.fury.io/py/dataconf.svg)](https://badge.fury.io/py/dataconf)
 
 Simple dataclasses configuration management for Python with
@@ -13,14 +13,14 @@ Requires at least Python 3.10.
 ```bash
 # pypi
 pip install dataconf
-poetry add dataconf
+uv add dataconf
 
 # remote master
 pip install --upgrade git+https://github.com/zifeo/dataconf.git
-poetry add git+https://github.com/zifeo/dataconf.git
+uv add git+https://github.com/zifeo/dataconf.git
 
 # local repo/dev
-poetry install
+uv sync
 pre-commit install
 ```
 
@@ -243,3 +243,16 @@ Can be used for validation or converting between supported file formats (`-o`).
 dataconf -c confs/test.hocon -m tests.configs -d TestConf -o hocon
 # dataconf.exceptions.TypeConfigException: expected type <class 'datetime.timedelta'> at .duration, got <class 'int'>
 ```
+
+## Development
+
+```bash
+uv sync
+uv run pytest
+uv run ruff check
+```
+
+Releases are cut from conventional commits. Merging to `main` updates a
+[release-please](https://github.com/googleapis/release-please) pull request with
+the next version and `CHANGELOG.md`. Merging that PR tags `vX.Y.Z` and publishes
+to PyPI with Trusted Publishing (`uv build` / `uv publish`).

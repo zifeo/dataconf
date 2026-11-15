@@ -1,0 +1,16 @@
+changelog:
+  exclude:
+    authors:
+      - octocat
+      - dependabot
+      - dependabot[bot]
+  categories:
+    - title: Breaking changes 🛠
+      labels:
+        - breaking-change
+    - title: Bug fixes 🐛
+      labels:
+        - bug
+    - title: New features 🎉
+      labels:
+        - "*"
