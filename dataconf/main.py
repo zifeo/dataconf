@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from urllib.request import urlopen
 
 import pyparsing
+import tomli_w
 from pyhocon import ConfigFactory
 from pyhocon import HOCONConverter
 from pyhocon.config_parser import ConfigTree
@@ -12,9 +13,16 @@ from yaml import safe_load
 
 from dataconf import utils
 from dataconf.exceptions import MalformedConfigException
+from dataconf.version import PY311up
+
+if PY311up:
+    import tomllib
+else:
+    import tomli as tomllib
 
 HOCON = 1
 YAML = 2
+TOML = 3
 
 
 def parse(
@@ -57,6 +65,10 @@ class Multi:
             data = safe_load(s)
             return self.dict(data, **kwargs)
 
+        if loader == TOML:
+            data = tomllib.loads(s)
+            return self.dict(data, **kwargs)
+
         conf = ConfigFactory.parse_string(s)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
@@ -66,6 +78,11 @@ class Multi:
             with contextlib.closing(urlopen(uri, timeout=timeout)) as fd:
                 s = fd.read().decode("utf-8")
             return self.string(s, loader=YAML, **kwargs)
+
+        if path.endswith(".toml"):
+            with contextlib.closing(urlopen(uri, timeout=timeout)) as fd:
+                s = fd.read().decode("utf-8")
+            return self.string(s, loader=TOML, **kwargs)
 
         conf = ConfigFactory.parse_URL(uri, timeout=timeout, required=True)
         return Multi(self.confs + [conf], self.strict, **kwargs)
@@ -83,6 +100,11 @@ class Multi:
         if loader == YAML or (loader is None and path.endswith((".yaml", ".yml"))):
             with open(path, "r") as f:
                 data = safe_load(f)
+            return self.dict(data, **kwargs)
+
+        if loader == TOML or (loader is None and path.endswith(".toml")):
+            with open(path, "rb") as f:
+                data = tomllib.load(f)
             return self.dict(data, **kwargs)
 
         conf = ConfigFactory.parse_file(path)
@@ -151,5 +173,7 @@ def dumps(instance: object, out: str):
             return HOCONConverter.to_json(conf)
         if out.lower() == "properties":
             return HOCONConverter.to_properties(conf)
+        if out.lower() == "toml":
+            return tomli_w.dumps(utils.__to_toml(conf))
 
     return conf

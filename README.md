@@ -4,7 +4,7 @@
 [![PyPI version](https://badge.fury.io/py/dataconf.svg)](https://badge.fury.io/py/dataconf)
 
 Simple dataclasses configuration management for Python with
-hocon/json/yaml/properties/env-vars/dict/cli support.
+hocon/json/yaml/toml/properties/env-vars/dict/cli support.
 
 ## Getting started
 
@@ -155,21 +155,24 @@ import dataconf
 
 conf = dataconf.string('{ name: Test }', Config)
 conf = dataconf.string('name:\n\tvalue: Test', Config, loader=dataconf.YAML)  # dataconf.HOCON by default
+conf = dataconf.string('name = "Test"', Config, loader=dataconf.TOML)
 conf = dataconf.env('PREFIX_', Config)
 conf = dataconf.dict({'name': 'Test'}, Config)
-conf = dataconf.url('https://raw.githubusercontent.com/zifeo/dataconf/master/confs/test.hocon', Config)  # hocon, json, yaml, properties
-conf = dataconf.file('confs/test.hocon', Config)  # hocon, json, yaml, properties
+conf = dataconf.url('https://raw.githubusercontent.com/zifeo/dataconf/master/confs/test.hocon', Config)  # hocon, json, yaml, toml, properties
+conf = dataconf.file('confs/test.hocon', Config)  # hocon, json, yaml, toml, properties
 conf = dataconf.cli(sys.argv, Config)
 
 # Aggregation
 conf = dataconf.multi.string(...).env(...).url(...).file(...).dict(...).cli(...).on(Config)
 
 # Same api as Python json/yaml packages (e.g. `load`, `loads`, `dump`, `dumps`)
-conf = dataconf.load('confs/test.hocon', Config)  # hocon, json, yaml, properties
+conf = dataconf.load('confs/test.hocon', Config)  # hocon, json, yaml, toml, properties
 conf = dataconf.load('confs/test.yaml', Config, loader=dataconf.YAML)  # dataconf.HOCON by default
+conf = dataconf.load('confs/test.toml', Config, loader=dataconf.TOML)
 dataconf.dump('confs/test.hocon', conf, out='hocon')
 dataconf.dump('confs/test.json', conf, out='json')
 dataconf.dump('confs/test.yaml', conf, out='yaml')
+dataconf.dump('confs/test.toml', conf, out='toml')
 dataconf.dump('confs/test.properties', conf, out='properties')
 ```
 

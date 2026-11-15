@@ -25,7 +25,7 @@ parser.add_argument(
     "--out",
     dest="out",
     action="store",
-    help="out file type: hocon, yaml, json, properties",
+    help="out file type: hocon, yaml, json, properties, toml",
     required=False,
 )
 
