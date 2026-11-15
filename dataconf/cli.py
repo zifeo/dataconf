@@ -25,8 +25,9 @@ parser.add_argument(
     "--out",
     dest="out",
     action="store",
+    choices=["hocon", "yaml", "json", "properties", "toml"],
+    default="hocon",
     help="out file type: hocon, yaml, json, properties, toml",
-    required=False,
 )
 
 
@@ -40,3 +41,7 @@ def run():
     print(dumps(res, args.out))
 
     sys.exit(0)
+
+
+if __name__ == "__main__":
+    run()

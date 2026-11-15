@@ -1,3 +1,6 @@
+import dataclasses
+import re
+from collections.abc import Sequence
 from dataclasses import MISSING
 from dataclasses import asdict
 from dataclasses import fields
@@ -11,11 +14,13 @@ from inspect import isclass
 from pathlib import Path
 from types import UnionType
 from typing import Any
+from typing import ForwardRef
 from typing import Literal
 from typing import Union
 from typing import get_args
 from typing import get_origin
 from typing import get_type_hints
+from uuid import UUID
 
 import pyparsing
 from dateutil.parser import isoparse
@@ -75,6 +80,20 @@ def is_optional(type: type | Any | str):
     return is_union(get_origin(type)) and NoneType in get_args(type)
 
 
+_UNION_CATCH = (
+    TypeConfigException,
+    MalformedConfigException,
+    UnexpectedKeysException,
+    ParseException,
+    TypeError,
+    ValueError,
+    KeyError,
+    AttributeError,
+)
+
+_ENV_KEY_PARTS = re.compile(r"(\d+)")
+
+
 def _type_hints(clazz: type) -> dict[str, Any]:
     try:
         return get_type_hints(clazz)
@@ -82,23 +101,101 @@ def _type_hints(clazz: type) -> dict[str, Any]:
         return {}
 
 
+def _is_mapping(value: Any) -> bool:
+    return isinstance(value, (ConfigTree, dict)) and not isinstance(value, ConfigList)
+
+
+def _plain(value: Any) -> Any:
+    if isinstance(value, ConfigTree):
+        return {k: _plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, ConfigList)):
+        return [_plain(v) for v in value]
+    return value
+
+
+def _sequence_from(value: Any, path: str, clazz: type):
+    if value is None:
+        raise MalformedConfigException(
+            f"expected list at {path_to_str(path)} but received None"
+        )
+    if isinstance(value, str):
+        raise TypeConfigException(
+            f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+        )
+    if isinstance(value, ConfigTree):
+        keys = list(value.keys())
+        try:
+            idxs = [int(k) for k in keys]
+        except (TypeError, ValueError):
+            raise TypeConfigException(
+                f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+            )
+        if set(idxs) != set(range(len(idxs))):
+            raise TypeConfigException(
+                f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+            )
+        return [value[k] for k in sorted(keys, key=lambda k: int(k))]
+    if isinstance(value, (list, tuple, ConfigList)):
+        return list(value)
+    if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):
+        return list(value)
+    raise TypeConfigException(
+        f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+    )
+
+
+def _relativedelta_iso(value: relativedelta) -> str:
+    return duration_isoformat(
+        Duration(
+            years=value.years,
+            months=value.months,
+            days=value.days,
+            hours=value.hours,
+            minutes=value.minutes,
+            seconds=value.seconds + value.microseconds / 1_000_000,
+        )
+    )
+
+
+def _has_index(focus, key) -> bool:
+    if isinstance(focus, list):
+        return isinstance(key, int) and 0 <= key < len(focus)
+    return key in focus
+
+
 def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected: bool):
+    if isinstance(clazz, (str, ForwardRef)):
+        raise TypeConfigException(
+            f"unresolved type annotation {clazz!r} at {path_to_str(path)}"
+        )
+
+    supertype = getattr(clazz, "__supertype__", None)
+    if supertype is not None:
+        return __parse(value, supertype, path, strict, ignore_unexpected)
+
     if is_dataclass(clazz):
-        if not isinstance(value, ConfigTree):
+        if not _is_mapping(value):
             raise TypeConfigException(
                 f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
             )
 
         fs = {}
-        renamings = dict()
+        used_keys = set()
         hints = _type_hints(clazz)
 
         for f in fields(clazz):
+            if not f.init:
+                continue
             ftype = hints.get(f.name, f.type)
+            if isinstance(ftype, (str, ForwardRef)):
+                raise TypeConfigException(
+                    f"unresolved type annotation {ftype!r} at {path_to_str(path)}.{f.name}"
+                )
             if f.name in value:
                 val = value[f.name]
+                used_keys.add(f.name)
             elif f.name.replace("_", "-") in value:
-                renamings[f.name] = f.name.replace("_", "-")
+                used_keys.add(f.name.replace("_", "-"))
                 val = value[f.name.replace("_", "-")]
             else:
                 if callable(f.default_factory):
@@ -120,7 +217,7 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
 
             elif is_dataclass(ftype):
                 nested_hints = _type_hints(ftype)
-                nested_fields = fields(ftype)
+                nested_fields = [nf for nf in fields(ftype) if nf.init]
                 if all(
                     field.default is not MISSING
                     or field.default_factory is not MISSING
@@ -132,6 +229,8 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
                             field.name: None
                             for field in nested_fields
                             if is_optional(nested_hints.get(field.name, field.type))
+                            and field.default is MISSING
+                            and field.default_factory is MISSING
                         }
                     )
                 else:
@@ -144,10 +243,28 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
                     f'expected type {clazz} at {path_to_str(path)}, no field "{f.name}" found'
                 )
 
-        unexpected_keys = value.keys() - {renamings.get(k, k) for k in fs}
+        for name, f in getattr(clazz, "__dataclass_fields__", {}).items():
+            if getattr(f, "_field_type", None) != dataclasses._FIELD_INITVAR:
+                continue
+            ftype = hints.get(name, f.type)
+            if type(ftype).__name__ == "InitVar":
+                ftype = getattr(ftype, "type", Any)
+            if name in value:
+                used_keys.add(name)
+                fs[name] = __parse(
+                    value[name], ftype, f"{path}.{name}", strict, ignore_unexpected
+                )
+            elif f.default is not MISSING or callable(f.default_factory):
+                continue
+            else:
+                raise MalformedConfigException(
+                    f'expected type {clazz} at {path_to_str(path)}, no field "{name}" found'
+                )
+
+        unexpected_keys = set(value.keys()) - used_keys
         if len(unexpected_keys) > 0 and not ignore_unexpected:
             raise UnexpectedKeysException(
-                f'unexpected key(s) "{", ".join(unexpected_keys)}" detected for type {clazz} at {path_to_str(path)}'
+                f'unexpected key(s) "{", ".join(map(str, unexpected_keys))}" detected for type {clazz} at {path_to_str(path)}'
             )
 
         return clazz(**fs)
@@ -159,39 +276,40 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
         if len(args) != 1:
             raise MissingTypeException("expected list with type information: List[?]")
 
-        if value is None:
-            raise MalformedConfigException(
-                f"expected list at {path_to_str(path)} but received None"
-            )
-
         parse_candidate = args[0]
         return [
             __parse(v, parse_candidate, f"{path}[]", strict, ignore_unexpected)
-            for v in value
+            for v in _sequence_from(value, path, list)
         ]
 
-    if clazz is tuple or origin is tuple:
+    if clazz is tuple:
+        raise MissingTypeException("expected tuple with type information: Tuple[?]")
+
+    if origin is tuple:
+        seq = _sequence_from(value, path, tuple)
+        if args == ():
+            if len(seq) != 0:
+                raise MalformedConfigException(
+                    "number of provided values does not match expected number of values for tuple."
+                )
+            return ()
+
         if len(args) < 1:
             raise MissingTypeException("expected tuple with type information: Tuple[?]")
-
-        if value is None:
-            raise MalformedConfigException(
-                f"expected tuple at {path_to_str(path)} but received None"
-            )
 
         has_ellipsis = args[-1] == Ellipsis
         if has_ellipsis and len(args) != 2:
             raise MissingTypeException(
                 "expected one type since ellipsis is used: Tuple[?, ...]"
             )
-        _args = args if not has_ellipsis else [args[0]] * len(value)
-        if len(value) > 0 and len(value) != len(_args):
+        _args = args if not has_ellipsis else [args[0]] * len(seq)
+        if len(seq) != len(_args):
             raise MalformedConfigException(
                 "number of provided values does not match expected number of values for tuple."
             )
         return tuple(
             __parse(v, arg, f"{path}[]", strict, ignore_unexpected)
-            for v, arg in zip(value, _args)
+            for v, arg in zip(seq, _args)
         )
 
     if clazz is dict or origin is dict:
@@ -199,14 +317,19 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
             raise MissingTypeException(
                 "expected dict with type information: Dict[?, ?]"
             )
-        if value is not None:
-            # ignore key type
-            parse_candidate = args[1]
-            return {
-                k: __parse(v, parse_candidate, f"{path}.{k}", strict, ignore_unexpected)
-                for k, v in value.items()
-            }
-        return None
+        if value is None:
+            raise MalformedConfigException(
+                f"expected dict at {path_to_str(path)} but received None"
+            )
+        if not _is_mapping(value):
+            raise TypeConfigException(
+                f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+            )
+        parse_candidate = args[1]
+        return {
+            k: __parse(v, parse_candidate, f"{path}.{k}", strict, ignore_unexpected)
+            for k, v in value.items()
+        }
 
     if is_union(origin):
         # Optional = Union[T, NoneType]
@@ -219,10 +342,10 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
                     return __parse(
                         value, parse_candidate, path, strict, ignore_unexpected
                     )
-                except TypeConfigException:
+                except _UNION_CATCH:
                     continue
 
-        if has_none:
+        if has_none and value is None:
             return None
 
         raise TypeConfigException(
@@ -238,7 +361,7 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
     if clazz is int:
         if isinstance(value, bool):
             return __parse_type(value, clazz, path, False)
-        if not strict and value is not None:
+        if not strict and isinstance(value, str):
             try:
                 value = int(value)
             except ValueError:
@@ -248,7 +371,7 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
     if clazz is float:
         if isinstance(value, bool):
             return __parse_type(value, clazz, path, False)
-        if not strict and value is not None:
+        if not strict and isinstance(value, str):
             try:
                 value = float(value)
             except ValueError:
@@ -259,27 +382,36 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
         return __parse_type(value, clazz, path, isinstance(value, str))
 
     if clazz is Any:
-        if type(value) is ConfigTree:
-            return dict(value)
-
-        return value
+        return _plain(value)
 
     if isclass(clazz) and (issubclass(clazz, Enum) or issubclass(clazz, IntEnum)):
-        if isinstance(value, int) and not isinstance(value, bool):
-            return clazz.__call__(value)
-        elif issubclass(clazz, str):
-            return clazz(value)
-        elif isinstance(value, str):
-            return clazz.__getitem__(value)
+        if isinstance(value, clazz):
+            return value
+        try:
+            if isinstance(value, int) and not isinstance(value, bool):
+                return clazz(value)
+            if isinstance(value, str):
+                try:
+                    return clazz[value]
+                except KeyError:
+                    return clazz(value)
+        except (KeyError, ValueError):
+            raise TypeConfigException(
+                f"expected type {clazz} at {path_to_str(path)}, got {value!r}"
+            )
         raise TypeConfigException(
             f"expected str or int at {path_to_str(path)}, got {type(value)}"
         )
 
     if isclass(clazz) and issubclass(clazz, Path):
-        return clazz.__call__(value)
+        if isinstance(value, (str, Path)):
+            return clazz(value)
+        raise TypeConfigException(
+            f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+        )
 
     if get_origin(clazz) is (Literal):
-        if value in args:
+        if any(v == value and type(v) is type(value) for v in args):
             return value
         raise TypeConfigException(
             f"expected one of {', '.join(map(str, args))} at {path_to_str(path)}, got {value}"
@@ -298,7 +430,34 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
                 f"expected type {clazz} at {path_to_str(path)}, cannot parse due to {e}"
             )
 
+    if clazz is date:
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, date):
+            return value
+        dt = __parse_type(value, clazz, path, isinstance(value, str))
+        try:
+            return isoparse(dt).date()
+        except ValueError as e:
+            raise ParseException(
+                f"expected type {clazz} at {path_to_str(path)}, cannot parse due to {e}"
+            )
+
     if clazz is timedelta:
+        if isinstance(value, timedelta) and not isinstance(value, relativedelta):
+            return value
+        if isinstance(value, relativedelta):
+            if value.years or value.months:
+                raise ParseException(
+                    "The ISO 8601 duration provided can not contain years or months"
+                )
+            return timedelta(
+                days=value.days,
+                hours=value.hours,
+                minutes=value.minutes,
+                seconds=value.seconds,
+                microseconds=value.microseconds,
+            )
         dt = __parse_type(value, clazz, path, isinstance(value, str))
         try:
             duration = parse_duration(dt)
@@ -311,6 +470,29 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
             raise ParseException(
                 f"expected type {clazz} at {path_to_str(path)}, cannot parse due to {e}"
             )
+
+    if clazz is bytes:
+        if isinstance(value, bytes):
+            return value
+        if isinstance(value, str):
+            return value.encode()
+        raise TypeConfigException(
+            f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+        )
+
+    if clazz is UUID:
+        if isinstance(value, UUID):
+            return value
+        if isinstance(value, str):
+            try:
+                return UUID(value)
+            except ValueError as e:
+                raise ParseException(
+                    f"expected type {clazz} at {path_to_str(path)}, cannot parse due to {e}"
+                )
+        raise TypeConfigException(
+            f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+        )
 
     if clazz is relativedelta:
         if isinstance(value, relativedelta):
@@ -339,7 +521,14 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
 
     child_failures = []
     child_successes = []
-    subtype = value.pop("_type", default=None)
+    if not _is_mapping(value):
+        raise TypeConfigException(
+            f"expected type {clazz} at {path_to_str(path)}, got {type(value)}"
+        )
+    try:
+        subtype = value.pop("_type", default=None)
+    except TypeError:
+        subtype = value.pop("_type", None)
     for child_clazz in sorted(clazz.__subclasses__(), key=lambda c: c.__name__):
         if is_dataclass(child_clazz) and (
             subtype is None
@@ -389,13 +578,30 @@ def __generate(value: object, path: str):
         tree = {k: __generate(v, f"{path}.{k}") for k, v in value.items()}
         return ConfigTree(tree)
 
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple)):
         tree = [__generate(e, f"{path}[]") for e in value]
         return ConfigList(tree)
 
-    # needs a better impl.
-    # if isinstance(value, timedelta):
-    # if isinstance(value, relativedelta):
+    if isinstance(value, Path):
+        return str(value)
+
+    if isinstance(value, Enum):
+        return __generate(value.value, path)
+
+    if isinstance(value, datetime):
+        return value.isoformat()
+
+    if isinstance(value, date):
+        return value.isoformat()
+
+    if isinstance(value, relativedelta):
+        return _relativedelta_iso(value)
+
+    if isinstance(value, timedelta):
+        return duration_isoformat(value)
+
+    if isinstance(value, UUID):
+        return str(value)
 
     return value
 
@@ -423,20 +629,11 @@ def __to_toml(value: object):
     if isinstance(value, Enum):
         return __to_toml(value.value)
 
+    if isinstance(value, relativedelta):
+        return _relativedelta_iso(value)
+
     if isinstance(value, timedelta):
         return duration_isoformat(value)
-
-    if isinstance(value, relativedelta):
-        return duration_isoformat(
-            Duration(
-                years=value.years,
-                months=value.months,
-                days=value.days,
-                hours=value.hours,
-                minutes=value.minutes,
-                seconds=value.seconds + value.microseconds / 1_000_000,
-            )
-        )
 
     return value
 
@@ -456,28 +653,38 @@ def __env_vars_parse(prefix: str, obj: dict[str, Any]):
                 focus.append(v)
             # {}x
             else:
-                focus[p[0]] = v
+                key = str(p[0]) if isinstance(p[0], int) else p[0]
+                focus[key] = v
             return
 
         # dict
         if p[1] == "":
-            if p[0] not in focus:
+            if not _has_index(focus, p[0]):
                 # []{x}
                 if isinstance(focus, list):
-                    if p[0] == len(focus):
-                        focus.append({})
+                    if p[0] != len(focus):
+                        raise EnvListOrderException
+                    focus.append({})
                 # {}{x}
                 else:
                     focus[p[0]] = {}
+            elif not isinstance(focus[p[0]], (dict, list)):
+                raise ParseException(
+                    f"cannot nest under {p[0]!r}: existing value is {type(focus[p[0]])}"
+                )
 
+            if len(p) == 2:
+                focus[p[0]] = v
+                return
             return set_lens(p[2:], focus[p[0]], v)
 
         # list (only if the focus/value is already a list or if it starts with element 0)
-        if isinstance(p[1], int) and (p[1] == 0 or isinstance(focus[p[0]], list)):
-            if p[0] not in focus:
+        parent_is_list = _has_index(focus, p[0]) and isinstance(focus[p[0]], list)
+        if isinstance(p[1], int) and (p[1] == 0 or parent_is_list):
+            if not _has_index(focus, p[0]):
                 # [][x]
                 if isinstance(focus, list):
-                    if p[1] != len(focus):
+                    if p[0] != len(focus):
                         raise EnvListOrderException
                     focus.append([])
                 # {}[x]
@@ -498,7 +705,12 @@ def __env_vars_parse(prefix: str, obj: dict[str, Any]):
     if not prefix.endswith("_") and prefix != "":
         prefix = f"{prefix}_"
 
-    for k, v in sorted(obj.items(), key=lambda x: x[0]):
+    def _env_sort_key(k: str):
+        return tuple(
+            int(part) if part.isdigit() else part for part in _ENV_KEY_PARTS.split(k)
+        )
+
+    for k, v in sorted(obj.items(), key=lambda x: _env_sort_key(x[0])):
         if k.startswith(prefix):
             if k.endswith("_"):
                 try:
