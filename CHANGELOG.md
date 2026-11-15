@@ -4,6 +4,13 @@
 
 - drop python 3.9, add 3.15, and guard empty cli argv (#267)
 
+## [4.1.0](https://github.com/zifeo/dataconf/compare/dataconf-v4.0.0...dataconf-v4.1.0) (2026-11-15)
+
+
+### Features
+
+* drop python 3.10 and pin patched filelock in the lockfile ([#278](https://github.com/zifeo/dataconf/issues/278)) ([6a37202](https://github.com/zifeo/dataconf/commit/6a37202d5982a0ed4cab79450dd069c3320c0c47))
+
 ## [4.0.0](https://github.com/zifeo/dataconf/compare/dataconf-v3.7.1...dataconf-v4.0.0) (2026-11-15)
 
 
