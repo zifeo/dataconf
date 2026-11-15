@@ -1,4 +1,5 @@
 from dataconf.main import HOCON
+from dataconf.main import TOML
 from dataconf.main import YAML
 from dataconf.main import cli
 from dataconf.main import dict
@@ -16,6 +17,7 @@ from dataconf.version import __version__
 
 __all__ = [
     "HOCON",
+    "TOML",
     "YAML",
     "__version__",
     "cli",

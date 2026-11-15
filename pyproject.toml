@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "dataconf"
 version = "3.7.1"
-description = "Simple dataclasses configuration management for Python with hocon/json/yaml/properties/env-vars/dict support."
+description = "Simple dataclasses configuration management for Python with hocon/json/yaml/toml/properties/env-vars/dict support."
 authors = []
 license = "MPL-2.0"
 readme = "README.md"
@@ -23,6 +23,7 @@ keywords = [
     "configuration",
     "dataclasses",
     "yaml",
+    "toml",
     "hocon",
     "json",
     "properties",
@@ -40,6 +41,8 @@ PyYAML = "^6.0.2"
 isodate = "^0.7.2"
 pyhocon = "^0.3.61"
 pyparsing = "^3.2.3"
+tomli = { version = "^2.5.0", python = "<3.11" }
+tomli-w = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.4.1"

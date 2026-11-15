@@ -2,6 +2,7 @@ from dataclasses import MISSING
 from dataclasses import asdict
 from dataclasses import fields
 from dataclasses import is_dataclass
+from datetime import date
 from datetime import datetime
 from datetime import timedelta
 from enum import Enum
@@ -20,6 +21,7 @@ import pyparsing
 from dateutil.parser import isoparse
 from dateutil.relativedelta import relativedelta
 from isodate import Duration
+from isodate import duration_isoformat
 from isodate import parse_duration
 from pyhocon import ConfigFactory
 from pyhocon.config_tree import ConfigList
@@ -284,6 +286,10 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
         )
 
     if clazz is datetime:
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, date):
+            return datetime.combine(value, datetime.min.time())
         dt = __parse_type(value, clazz, path, isinstance(value, str))
         try:
             return isoparse(dt)
@@ -307,7 +313,29 @@ def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected:
             )
 
     if clazz is relativedelta:
-        return __parse_type(value, clazz, path, isinstance(value, relativedelta))
+        if isinstance(value, relativedelta):
+            return value
+        dt = __parse_type(value, clazz, path, isinstance(value, str))
+        try:
+            duration = parse_duration(dt)
+        except ValueError as e:
+            raise ParseException(
+                f"expected type {clazz} at {path_to_str(path)}, cannot parse due to {e}"
+            )
+        if isinstance(duration, Duration):
+            extra = duration.tdelta
+            return relativedelta(
+                years=int(duration.years or 0),
+                months=int(duration.months or 0),
+                days=extra.days,
+                seconds=extra.seconds,
+                microseconds=extra.microseconds,
+            )
+        return relativedelta(
+            days=duration.days,
+            seconds=duration.seconds,
+            microseconds=duration.microseconds,
+        )
 
     child_failures = []
     child_successes = []
@@ -368,6 +396,47 @@ def __generate(value: object, path: str):
     # needs a better impl.
     # if isinstance(value, timedelta):
     # if isinstance(value, relativedelta):
+
+    return value
+
+
+def __to_toml(value: object):
+    if isinstance(value, (ConfigTree, dict)):
+        out = {}
+        for k, v in value.items():
+            converted = __to_toml(v)
+            if converted is not None:
+                out[str(k)] = converted
+        return out
+
+    if isinstance(value, (list, tuple, ConfigList)):
+        encoded = []
+        for v in value:
+            if v is None:
+                raise ParseException("TOML cannot encode null list items")
+            encoded.append(__to_toml(v))
+        return encoded
+
+    if isinstance(value, Path):
+        return str(value)
+
+    if isinstance(value, Enum):
+        return __to_toml(value.value)
+
+    if isinstance(value, timedelta):
+        return duration_isoformat(value)
+
+    if isinstance(value, relativedelta):
+        return duration_isoformat(
+            Duration(
+                years=value.years,
+                months=value.months,
+                days=value.days,
+                hours=value.hours,
+                minutes=value.minutes,
+                seconds=value.seconds + value.microseconds / 1_000_000,
+            )
+        )
 
     return value
 

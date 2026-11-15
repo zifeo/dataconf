@@ -5,7 +5,7 @@ from werkzeug.wrappers import Response
 
 
 def file_handler(path: str):
-    with open("confs/simple.json", "r") as f:
+    with open(path, "r") as f:
         data = f.read()
 
     def handler(request: Request):
