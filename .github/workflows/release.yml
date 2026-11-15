@@ -36,7 +36,7 @@ jobs:
           ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: astral-sh/setup-uv@v7
       - run: uv build
-      - uses: actions/attest-build-provenance@v3
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-path: "dist/*"
       - run: uv publish
