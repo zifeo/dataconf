@@ -1,13 +1,17 @@
 from dataclasses import dataclass
 from datetime import datetime
+from datetime import timedelta
 from datetime import timezone
 
+import pytest
+from dateutil.relativedelta import relativedelta
 from pytest_httpserver import HTTPServer
 
 import dataconf
 from dataconf import dumps
 from dataconf import load
 from dataconf import loads
+from dataconf.exceptions import ParseException
 from dataconf.main import file
 from dataconf.main import url
 from tests.conftest import file_handler
@@ -91,3 +95,30 @@ class TestToml:
         text = dumps(A(hello="x"), out="toml")
         assert "maybe" not in text
         assert loads(text, A, loader=dataconf.TOML) == A(hello="x", maybe=None)
+
+    def test_dump_list_none_raises(self) -> None:
+        @dataclass
+        class A:
+            xs: list[str | None]
+
+        with pytest.raises(ParseException, match="null list items"):
+            dumps(A(xs=["a", None, "b"]), out="toml")
+
+    def test_relativedelta_roundtrip(self) -> None:
+        @dataclass
+        class A:
+            a: relativedelta
+
+        original = A(a=relativedelta(years=1, months=2, days=3, hours=4))
+        text = dumps(original, out="toml")
+        assert loads(text, A, loader=dataconf.TOML) == original
+        assert loads('a = "P2D"', A, loader=dataconf.TOML) == A(a=relativedelta(days=2))
+
+    def test_timedelta_roundtrip(self) -> None:
+        @dataclass
+        class A:
+            a: timedelta
+
+        original = A(a=timedelta(days=1, hours=2))
+        text = dumps(original, out="toml")
+        assert loads(text, A, loader=dataconf.TOML) == original
