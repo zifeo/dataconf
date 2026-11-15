@@ -25,8 +25,9 @@ parser.add_argument(
     "--out",
     dest="out",
     action="store",
+    choices=["hocon", "yaml", "json", "properties", "toml"],
+    default="hocon",
     help="out file type: hocon, yaml, json, properties, toml",
-    required=False,
 )
 
 
