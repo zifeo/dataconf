@@ -8,7 +8,7 @@ hocon/json/yaml/toml/properties/env-vars/dict/cli support.
 
 ## Getting started
 
-Requires at least Python 3.10.
+Requires at least Python 3.11.
 
 ```bash
 # pypi
@@ -21,7 +21,7 @@ uv add git+https://github.com/zifeo/dataconf.git
 
 # local repo/dev
 uv sync
-pre-commit install
+uv run pre-commit install
 ```
 
 ## Usage
@@ -248,6 +248,7 @@ dataconf -c confs/test.hocon -m tests.configs -d TestConf -o hocon
 
 ```bash
 uv sync
+uv run pre-commit install
 uv run pytest
 uv run ruff check
 ```

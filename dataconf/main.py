@@ -2,6 +2,7 @@ import contextlib
 import copy
 import json
 import os
+import tomllib
 from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlparse
@@ -20,12 +21,6 @@ from yaml import safe_load
 from dataconf import utils
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import ParseException
-from dataconf.version import PY311up
-
-if PY311up:
-    import tomllib
-else:
-    import tomli as tomllib
 
 HOCON = 1
 YAML = 2
