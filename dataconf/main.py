@@ -2,6 +2,7 @@ import contextlib
 import copy
 import json
 import os
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlparse
 from urllib.request import urlopen
@@ -11,6 +12,8 @@ import tomli_w
 from pyhocon import ConfigFactory
 from pyhocon import HOCONConverter
 from pyhocon.config_parser import ConfigTree
+from pyhocon.exceptions import ConfigException
+from yaml import YAMLError
 from yaml import safe_dump
 from yaml import safe_load
 
@@ -42,6 +45,17 @@ def _normalize_loader(loader):
     return loader
 
 
+def _stringify_keys(obj: Any) -> Any:
+    if isinstance(obj, Mapping):
+        return {
+            k if isinstance(k, str) else str(k): _stringify_keys(v)
+            for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_stringify_keys(v) for v in obj]
+    return obj
+
+
 def _hocon_parse(fn, *args, **kwargs):
     try:
         return fn(*args, **kwargs)
@@ -49,6 +63,29 @@ def _hocon_parse(fn, *args, **kwargs):
         raise MalformedConfigException(
             f'parsing failure line {e.lineno} character {e.col}, got "{e.line}"'
         )
+    except ConfigException as e:
+        raise ParseException(str(e)) from e
+
+
+def _yaml_load(data):
+    try:
+        return safe_load(data)
+    except YAMLError as e:
+        raise ParseException(str(e)) from e
+
+
+def _toml_loads(s: str):
+    try:
+        return tomllib.loads(s)
+    except tomllib.TOMLDecodeError as e:
+        raise ParseException(str(e)) from e
+
+
+def _toml_load(f):
+    try:
+        return tomllib.load(f)
+    except tomllib.TOMLDecodeError as e:
+        raise ParseException(str(e)) from e
 
 
 def parse(
@@ -91,24 +128,37 @@ class Multi:
     def dict(self, obj: dict[str, Any], **kwargs) -> "Multi":
         if obj is None:
             obj = {}
-        conf = ConfigFactory.from_dict(obj)
+        conf = ConfigFactory.from_dict(_stringify_keys(obj))
         return self._next(conf, kwargs)
 
     def string(self, s: str, loader: str = HOCON, **kwargs) -> "Multi":
         loader = _normalize_loader(loader)
         if loader == YAML:
-            data = safe_load(s)
+            data = _yaml_load(s)
             return self.dict({} if data is None else data, **kwargs)
 
         if loader == TOML:
-            data = tomllib.loads(s)
+            data = _toml_loads(s)
             return self.dict(data, **kwargs)
+
+        stripped = s.lstrip()
+        if stripped[:1] in "{[":
+            try:
+                data = json.loads(s)
+            except json.JSONDecodeError:
+                data = None
+            else:
+                if isinstance(data, Mapping):
+                    return self.dict(data, **kwargs)
 
         conf = _hocon_parse(ConfigFactory.parse_string, s)
         return self._next(conf, kwargs)
 
     def url(self, uri: str, timeout: int = 10, **kwargs) -> "Multi":
-        path = urlparse(uri).path.lower()
+        parsed = urlparse(uri)
+        if parsed.scheme == "file" and parsed.query:
+            raise ParseException("file URLs with a query string are not supported")
+        path = parsed.path.lower().rstrip("/")
         loader = _normalize_loader(kwargs.pop("loader", None))
         if loader == YAML or (loader is None and path.endswith((".yaml", ".yml"))):
             with contextlib.closing(urlopen(uri, timeout=timeout)) as fd:
@@ -139,12 +189,12 @@ class Multi:
         lowered = path.lower()
         if loader == YAML or (loader is None and lowered.endswith((".yaml", ".yml"))):
             with open(path, "r") as f:
-                data = safe_load(f)
+                data = _yaml_load(f)
             return self.dict({} if data is None else data, **kwargs)
 
         if loader == TOML or (loader is None and lowered.endswith(".toml")):
             with open(path, "rb") as f:
-                data = tomllib.load(f)
+                data = _toml_load(f)
             return self.dict(data, **kwargs)
 
         conf = _hocon_parse(ConfigFactory.parse_file, path)
@@ -213,13 +263,15 @@ def dumps(instance: object, out: str):
     conf = utils.__generate(instance, "")
     fmt = (out or "").lower()
     if fmt == "hocon":
+        if not utils._hocon_safe_keys(conf):
+            return json.dumps(utils._plain(conf), indent=2, ensure_ascii=False) + "\n"
         return HOCONConverter.to_hocon(conf)
     if fmt == "yaml":
         return safe_dump(utils._plain(conf), sort_keys=False)
     if fmt == "json":
-        return json.dumps(utils._plain(conf), indent=2) + "\n"
+        return json.dumps(utils._plain(conf), indent=2, ensure_ascii=False) + "\n"
     if fmt == "properties":
-        return HOCONConverter.to_properties(conf)
+        return utils.__to_properties(utils._plain(conf))
     if fmt == "toml":
         return tomli_w.dumps(utils.__to_toml(conf))
     raise ParseException(
