@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Git tag to publish to PyPI
+        required: true
+        type: string
+        default: dataconf-v4.0.0
 
 permissions:
   contents: write
@@ -13,6 +20,7 @@ permissions:
 
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
@@ -23,7 +31,7 @@ jobs:
 
   publish:
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.release-please.outputs.release_created == 'true')
     runs-on: ubuntu-24.04
     environment: pypi
     permissions:
@@ -33,7 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          ref: ${{ github.event.inputs.tag || needs.release-please.outputs.tag_name }}
       - uses: astral-sh/setup-uv@v7
       - run: uv build
       - uses: actions/attest-build-provenance@v4
