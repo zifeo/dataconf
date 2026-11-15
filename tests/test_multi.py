@@ -1,20 +1,20 @@
-from dataclasses import dataclass
 import os
-from typing import Text, Tuple
-from datetime import timedelta
 import urllib
+from dataclasses import dataclass
+from datetime import timedelta
+
+import pytest
 
 from dataconf import multi
-import pytest
 
 
 class TestMulti:
     def test_simple(self) -> None:
         @dataclass
         class A:
-            a: Text
-            b: Tuple[Text, timedelta]
-            c: Tuple[int, ...]
+            a: str
+            b: tuple[str, timedelta]
+            c: tuple[int, ...]
 
         expected = A(a="test", b=("P1D", timedelta(days=1)), c=(1,))
         assert multi.string("a = test\nb = [P1D\nP1D]\nc = [1]").on(A) == expected
@@ -25,7 +25,7 @@ class TestMulti:
     def test_chain(self) -> None:
         @dataclass
         class A:
-            a: Text
+            a: str
             b: int
 
         assert multi.string("a = test").string("b = 2").on(A) == A(a="test", b=2)
@@ -48,7 +48,7 @@ class TestMulti:
     def test_multi_source(self) -> None:
         @dataclass
         class A:
-            a: Text
+            a: str
             b: int
 
         os.environ["DATACLASS_A"] = "1"

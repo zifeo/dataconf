@@ -1,7 +1,9 @@
-from dataconf.exceptions import EnvListFormatException, EnvListOrderException
+import pytest
+
+from dataconf.exceptions import EnvListFormatException
+from dataconf.exceptions import EnvListOrderException
 from dataconf.exceptions import ParseException
 from dataconf.utils import __env_vars_parse as env_vars_parse
-import pytest
 
 
 class TestEnvVars:

@@ -1,11 +1,18 @@
+import pytest
+
 from dataconf.exceptions import ParseException
 from dataconf.utils import __cli_parse as cli_parse
-import pytest
 
 
 class TestCli:
     def test_simple(self) -> None:
         assert cli_parse(["--test", "1"]) == dict(test="1")
+
+    def test_empty(self) -> None:
+        assert cli_parse([]) == dict()
+
+    def test_cmd_only(self) -> None:
+        assert cli_parse(["dataconf"]) == dict()
 
     def test_with_cmd(self) -> None:
         assert cli_parse(["dataconf", "--test", "1"]) == dict(test="1")

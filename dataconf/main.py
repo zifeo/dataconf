@@ -1,19 +1,17 @@
 import contextlib
 import os
-from typing import Any, Optional
-from typing import Dict
-from typing import List
-from typing import Type
+from typing import Any
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
-from dataconf import utils
-from dataconf.exceptions import MalformedConfigException
+import pyparsing
 from pyhocon import ConfigFactory
 from pyhocon import HOCONConverter
 from pyhocon.config_parser import ConfigTree
-import pyparsing
 from yaml import safe_load
+
+from dataconf import utils
+from dataconf.exceptions import MalformedConfigException
 
 HOCON = 1
 YAML = 2
@@ -39,7 +37,7 @@ def cli_parse(*args, **kwargs):
 
 
 class Multi:
-    def __init__(self, confs: List[ConfigTree], strict: bool = True, **kwargs) -> None:
+    def __init__(self, confs: list[ConfigTree], strict: bool = True, **kwargs) -> None:
         self.confs = confs
         self.strict = strict
         self.kwargs = kwargs
@@ -49,7 +47,7 @@ class Multi:
         strict = kwargs.pop("strict", False)
         return self.dict(data, strict=strict, **kwargs)
 
-    def dict(self, obj: Dict[str, Any], **kwargs) -> "Multi":
+    def dict(self, obj: dict[str, Any], **kwargs) -> "Multi":
         conf = ConfigFactory.from_dict(obj)
         strict = kwargs.pop("strict", self.strict)
         return Multi(self.confs + [conf], strict, **kwargs)
@@ -64,7 +62,7 @@ class Multi:
 
     def url(self, uri: str, timeout: int = 10, **kwargs) -> "Multi":
         path = urlparse(uri).path
-        if path.endswith(".yaml") or path.endswith(".yml"):
+        if path.endswith((".yaml", ".yml")):
             with contextlib.closing(urlopen(uri, timeout=timeout)) as fd:
                 s = fd.read().decode("utf-8")
             return self.string(s, loader=YAML, **kwargs)
@@ -75,16 +73,14 @@ class Multi:
     def file(
         self,
         path: str,
-        loader: Optional[str] = None,
+        loader: str | None = None,
         allow_missing: bool = False,
         **kwargs,
     ) -> "Multi":
         if allow_missing and not os.path.exists(path):
             return self.dict({}, **kwargs)
 
-        if loader == YAML or (
-            loader is None and (path.endswith(".yaml") or path.endswith(".yml"))
-        ):
+        if loader == YAML or (loader is None and path.endswith((".yaml", ".yml"))):
             with open(path, "r") as f:
                 data = safe_load(f)
             return self.dict(data, **kwargs)
@@ -92,11 +88,11 @@ class Multi:
         conf = ConfigFactory.parse_file(path)
         return Multi(self.confs + [conf], self.strict, **kwargs)
 
-    def cli(self, argv: List[str], **kwargs) -> "Multi":
+    def cli(self, argv: list[str], **kwargs) -> "Multi":
         data = cli_parse(argv)
         return self.dict(data, **kwargs)
 
-    def on(self, clazz: Type):
+    def on(self, clazz: type):
         conf, *nxts = self.confs
         for nxt in nxts:
             conf = ConfigTree.merge_configs(conf, nxt)
@@ -106,35 +102,35 @@ class Multi:
 multi = Multi([])
 
 
-def env(prefix: str, clazz: Type, **kwargs):
+def env(prefix: str, clazz: type, **kwargs):
     return multi.env(prefix, **kwargs).on(clazz)
 
 
-def dict(obj: Dict[str, Any], clazz: Type, **kwargs):
+def dict(obj: dict[str, Any], clazz: type, **kwargs):
     return multi.dict(obj, **kwargs).on(clazz)
 
 
-def string(s: str, clazz: Type, **kwargs):
+def string(s: str, clazz: type, **kwargs):
     return multi.string(s, **kwargs).on(clazz)
 
 
-def url(uri: str, clazz: Type, **kwargs):
+def url(uri: str, clazz: type, **kwargs):
     return multi.url(uri, **kwargs).on(clazz)
 
 
-def file(path: str, clazz: Type, **kwargs):
+def file(path: str, clazz: type, **kwargs):
     return multi.file(path, **kwargs).on(clazz)
 
 
-def cli(argv: List[str], clazz: Type, **kwargs):
+def cli(argv: list[str], clazz: type, **kwargs):
     return multi.cli(argv, **kwargs).on(clazz)
 
 
-def load(path: str, clazz: Type, **kwargs):
+def load(path: str, clazz: type, **kwargs):
     return file(path, clazz, **kwargs)
 
 
-def loads(s: str, clazz: Type, **kwargs):
+def loads(s: str, clazz: type, **kwargs):
     return string(s, clazz, **kwargs)
 
 

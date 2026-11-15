@@ -1,4 +1,4 @@
-from dataclasses import _MISSING_TYPE
+from dataclasses import MISSING
 from dataclasses import asdict
 from dataclasses import fields
 from dataclasses import is_dataclass
@@ -8,37 +8,30 @@ from enum import Enum
 from enum import IntEnum
 from inspect import isclass
 from pathlib import Path
-
-from typing import Any, Literal
-from typing import Dict
+from types import UnionType
+from typing import Any
+from typing import Literal
+from typing import Union
 from typing import get_args
 from typing import get_origin
-from typing import List
-from typing import Type
-from typing import Union
 
-from dataconf.exceptions import AmbiguousSubclassException, EnvListFormatException
+import pyparsing
+from dateutil.parser import isoparse
+from dateutil.relativedelta import relativedelta
+from isodate import Duration
+from isodate import parse_duration
+from pyhocon import ConfigFactory
+from pyhocon.config_tree import ConfigList
+from pyhocon.config_tree import ConfigTree
+
+from dataconf.exceptions import AmbiguousSubclassException
+from dataconf.exceptions import EnvListFormatException
 from dataconf.exceptions import EnvListOrderException
 from dataconf.exceptions import MalformedConfigException
 from dataconf.exceptions import MissingTypeException
 from dataconf.exceptions import ParseException
 from dataconf.exceptions import TypeConfigException
 from dataconf.exceptions import UnexpectedKeysException
-from dateutil.parser import isoparse
-from dateutil.relativedelta import relativedelta
-from pyhocon import ConfigFactory
-from pyhocon.config_tree import ConfigList
-from pyhocon.config_tree import ConfigTree
-from isodate import parse_duration
-from isodate import Duration
-import pyparsing
-
-from dataconf.version import PY310up
-
-
-if PY310up:
-    from types import UnionType
-
 
 NoneType = type(None)
 
@@ -58,7 +51,7 @@ def __parse_bool(value: Any):
     return None
 
 
-def __parse_type(value: Any, clazz: Type, path: str, check: bool):
+def __parse_type(value: Any, clazz: type, path: str, check: bool):
     try:
         if check:
             return value
@@ -71,15 +64,15 @@ def __parse_type(value: Any, clazz: Type, path: str, check: bool):
 
 
 def is_union(origin):
-    return origin is Union or (PY310up and origin is UnionType)
+    return origin is Union or origin is UnionType
 
 
-def is_optional(type: Type | Any | str):
+def is_optional(type: type | Any | str):
     # Optional = Union[T, NoneType]
     return is_union(get_origin(type)) and NoneType in get_args(type)
 
 
-def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected: bool):
+def __parse(value: any, clazz: type, path: str, strict: bool, ignore_unexpected: bool):
     if is_dataclass(clazz):
         if not isinstance(value, ConfigTree):
             raise TypeConfigException(
@@ -104,7 +97,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
                     # if val is a dataclass, convert to ConfigTree
                     val = ConfigFactory.from_dict(asdict(val))
 
-            if not isinstance(val, _MISSING_TYPE):
+            if val is not MISSING:
                 fs[f.name] = __parse(
                     val, f.type, f"{path}.{f.name}", strict, ignore_unexpected
                 )
@@ -115,8 +108,8 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
 
             elif is_dataclass(f.type):
                 if all(
-                    not isinstance(field.default, _MISSING_TYPE)
-                    or not isinstance(field.default_factory, _MISSING_TYPE)
+                    field.default is not MISSING
+                    or field.default_factory is not MISSING
                     or is_optional(field.type)
                     for field in fields(f.type)
                 ):
@@ -137,7 +130,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
                     f'expected type {clazz} at {path_to_str(path)}, no field "{f.name}" found'
                 )
 
-        unexpected_keys = value.keys() - {renamings.get(k, k) for k in fs.keys()}
+        unexpected_keys = value.keys() - {renamings.get(k, k) for k in fs}
         if len(unexpected_keys) > 0 and not ignore_unexpected:
             raise UnexpectedKeysException(
                 f'unexpected key(s) "{", ".join(unexpected_keys)}" detected for type {clazz} at {path_to_str(path)}'
@@ -148,14 +141,14 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
     origin = get_origin(clazz)
     args = get_args(clazz)
 
-    if origin is list:
+    if clazz is list or origin is list:
+        if len(args) != 1:
+            raise MissingTypeException("expected list with type information: List[?]")
+
         if value is None:
             raise MalformedConfigException(
                 f"expected list at {path_to_str(path)} but received None"
             )
-
-        if len(args) != 1:
-            raise MissingTypeException("expected list with type information: List[?]")
 
         parse_candidate = args[0]
         return [
@@ -163,14 +156,14 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             for v in value
         ]
 
-    if origin is tuple:
+    if clazz is tuple or origin is tuple:
+        if len(args) < 1:
+            raise MissingTypeException("expected tuple with type information: Tuple[?]")
+
         if value is None:
             raise MalformedConfigException(
                 f"expected tuple at {path_to_str(path)} but received None"
             )
-
-        if len(args) < 1:
-            raise MissingTypeException("expected tuple with type information: Tuple[?]")
 
         has_ellipsis = args[-1] == Ellipsis
         if has_ellipsis and len(args) != 2:
@@ -187,7 +180,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
             for v, arg in zip(value, _args)
         )
 
-    if origin is dict:
+    if clazz is dict or origin is dict:
         if len(args) != 2:
             raise MissingTypeException(
                 "expected dict with type information: Dict[?, ?]"
@@ -246,9 +239,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
                 value = float(value)
             except ValueError:
                 pass
-        return __parse_type(
-            value, clazz, path, isinstance(value, float) or isinstance(value, int)
-        )
+        return __parse_type(value, clazz, path, isinstance(value, (float, int)))
 
     if clazz is str:
         return __parse_type(value, clazz, path, isinstance(value, str))
@@ -332,7 +323,7 @@ def __parse(value: any, clazz: Type, path: str, strict: bool, ignore_unexpected:
     if len(child_successes) == 1:
         return child_successes[0][1]
     elif len(child_successes) > 1:
-        matching_classes = "\n- ".join(map(lambda x: x[0].__name__, child_successes))
+        matching_classes = "\n- ".join(x[0].__name__ for x in child_successes)
         raise AmbiguousSubclassException(
             f"""multiple subtypes of {clazz} matched at {path_to_str(path)}, use '_type' to disambiguate:\n- {matching_classes}"""
         )
@@ -369,7 +360,7 @@ def __generate(value: object, path: str):
     return value
 
 
-def __env_vars_parse(prefix: str, obj: Dict[str, Any]):
+def __env_vars_parse(prefix: str, obj: dict[str, Any]):
     ret = {}
 
     def set_lens(p, focus, v):
@@ -447,11 +438,11 @@ def path_to_str(path: str) -> str:
     return path if len(path) > 0 else "root"
 
 
-def __cli_parse(argv: List[str]):
+def __cli_parse(argv: list[str]):
     kvs = {}
     i = 0
 
-    if not argv[0].startswith("--"):
+    if argv and not argv[0].startswith("--"):
         i += 1
 
     while i < len(argv):
