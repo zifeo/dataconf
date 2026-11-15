@@ -1,6 +1,6 @@
 [project]
 name = "dataconf"
-version = "3.7.1"
+version = "4.0.0"
 description = "Simple dataclasses configuration management for Python with hocon/json/yaml/toml/properties/env-vars/dict support."
 readme = "README.md"
 license = "MPL-2.0"
